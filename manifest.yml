@@ -1,0 +1,110 @@
+modules:
+  jira:issuePanel:
+    - key: layer-blast-radius
+      resource: panel
+      resolver:
+        function: resolver
+      render: native
+      title: Blast radius
+      icon: resource:icons;layer.svg
+  rovo:agent:
+    - key: contract-steward
+      name: Contract Steward
+      description: Tells you which teams and services a code change will break, using
+        Layer's contract graph.
+      icon: resource:icons;layer.svg
+      prompt: resource:prompts;agent.txt
+      conversationStarters:
+        - What will this issue's pull requests break?
+        - Who uses the jobs-api contract?
+        - What contract changes are coming to the APIs my team calls?
+      actions:
+        - get-contract-consumers
+        - get-incoming-changes
+        - get-issue-blast-radius
+  rovo:mcp:
+    - key: layer-mcp
+      name: Layer contract graph
+      tools:
+        - get-contract-consumers
+        - get-incoming-changes
+        - get-issue-blast-radius
+  action:
+    - key: get-contract-consumers
+      name: Get contract consumers
+      function: consumers
+      actionVerb: GET
+      description: When a user asks who uses, calls or depends on an API, event or
+        database contract, list the repositories that consume it, with evidence
+        and confidence.
+      inputs:
+        contract:
+          title: Contract name
+          type: string
+          required: true
+          description: The contract's name as declared in Layer, for example jobs-api.
+        repo:
+          title: Producer repository
+          type: string
+          required: false
+          description: The repository that owns the contract, for example
+            github.com/fernway-test/jobs-api. Needed only when two repositories
+            declare the same name.
+    - key: get-incoming-changes
+      name: Get incoming contract changes
+      function: incoming
+      actionVerb: GET
+      description: When a user asks what changes are coming to the APIs or contracts a
+        team or repository depends on, list in-flight and recent contract
+        changes routed to it.
+      inputs:
+        repo:
+          title: Consuming repository
+          type: string
+          required: false
+          description: A consuming repository, for example fernway-test/web.
+        owner:
+          title: Owner handle
+          type: string
+          required: false
+          description: A team handle from CODEOWNERS, for example @fernway-test/mobile.
+    - key: get-issue-blast-radius
+      name: Get an issue's blast radius
+      function: issueChanges
+      actionVerb: GET
+      description: When a user asks what a Jira issue's code changes will break or who
+        they affect, list the contract changes in its pull requests and the
+        consumers each one reaches.
+      inputs:
+        issueKey:
+          title: Issue key
+          type: string
+          required: false
+          description: A Jira issue key such as JOBS-12. Defaults to the issue being viewed.
+  function:
+    - key: resolver
+      handler: index.handler
+    - key: consumers
+      handler: index.getConsumers
+    - key: incoming
+      handler: index.getIncomingChanges
+    - key: issueChanges
+      handler: index.getIssueChanges
+resources:
+  - key: panel
+    path: src/frontend/panel.jsx
+  - key: icons
+    path: static/icons
+  - key: prompts
+    path: prompts
+app:
+  runtime:
+    name: nodejs22.x
+  id: ari:cloud:ecosystem::app/176a7b78-247a-4860-a77c-96c16250c304
+permissions:
+  scopes:
+    - read:jira-work
+  external:
+    fetch:
+      backend:
+        - address: layer-api.fly.dev

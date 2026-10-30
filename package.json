@@ -1,0 +1,21 @@
+{
+  "name": "layer-forge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Layer for Jira: a Forge client of the Layer API",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "lint": "forge lint"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@forge/api": "^7.0.0",
+    "@forge/bridge": "^5.0.0",
+    "@forge/react": "^11.0.0",
+    "@forge/resolver": "^1.6.0",
+    "react": "^18.3.1"
+  }
+}
