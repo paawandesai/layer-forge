@@ -7,6 +7,13 @@ modules:
       render: native
       title: Blast radius
       icon: resource:icons;layer.svg
+  jira:adminPage:
+    - key: layer-admin
+      resource: admin
+      resolver:
+        function: resolver
+      render: native
+      title: Layer for Jira
   rovo:agent:
     - key: contract-steward
       name: Contract Steward
@@ -93,6 +100,8 @@ modules:
 resources:
   - key: panel
     path: src/frontend/panel.jsx
+  - key: admin
+    path: src/frontend/admin.jsx
   - key: icons
     path: static/icons
   - key: prompts
@@ -104,6 +113,8 @@ app:
 permissions:
   scopes:
     - read:jira-work
+    - write:jira-work
+    - storage:app
   external:
     fetch:
       backend:
