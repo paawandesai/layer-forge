@@ -7,6 +7,14 @@ modules:
       render: native
       title: Blast radius
       icon: resource:icons;layer.svg
+  jira:projectPage:
+    - key: layer-incoming
+      resource: project
+      resolver:
+        function: resolver
+      render: native
+      title: Incoming changes
+      icon: resource:icons;layer.svg
   jira:adminPage:
     - key: layer-admin
       resource: admin
@@ -102,6 +110,8 @@ resources:
     path: src/frontend/panel.jsx
   - key: admin
     path: src/frontend/admin.jsx
+  - key: project
+    path: src/frontend/project.jsx
   - key: icons
     path: static/icons
   - key: prompts

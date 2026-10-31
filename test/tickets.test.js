@@ -51,3 +51,10 @@ test('nothing breaking means nothing to file', () => {
   });
   assert.equal(plans.length, 0);
 });
+
+test('teams for a project come from the mapping', async () => {
+  const { teamsForProject } = await import('../src/lib/tickets.js');
+  const map = parseTeamProjects('@a/web = WEB\n@a/admin = WEB\n@a/dispatch = DISP');
+  assert.deepEqual(teamsForProject(map, 'WEB'), ['@a/web', '@a/admin']);
+  assert.deepEqual(teamsForProject(map, 'NONE'), []);
+});

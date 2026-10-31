@@ -54,3 +54,10 @@ export function planConsumerIssues({ issueKey, entries, teamProjects = {}, defau
     };
   });
 }
+
+// The owner teams an admin mapped to a Jira project.
+export function teamsForProject(teamProjects, projectKey) {
+  return Object.entries(teamProjects)
+    .filter(([, key]) => key === projectKey)
+    .map(([team]) => team);
+}
