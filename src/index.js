@@ -1,7 +1,9 @@
 import Resolver from '@forge/resolver';
-import { fetch } from '@forge/api';
+import api, { fetch, route } from '@forge/api';
+import { kvs as storage } from '@forge/kvs';
 import { createClient, layerConfig, LayerError } from './lib/layer.js';
 import { blastRadius, summarize, consumersText, changesText } from './lib/format.js';
+import { parseTeamProjects, planConsumerIssues } from './lib/tickets.js';
 
 const client = () => createClient({ ...layerConfig(), fetch });
 
@@ -20,9 +22,83 @@ resolver.define('getBlastRadius', async (req) => {
   try {
     const body = await client().changesForIssue(issueKey);
     const entries = blastRadius(body.changes);
-    return { issueKey, summary: summarize(entries), entries };
+    const plans = planConsumerIssues({ issueKey, entries, defaultProject: issueKey.split('-')[0] });
+    const told = (await storage.get(`told:${issueKey}`)) || {};
+    return { issueKey, summary: summarize(entries), entries, teamsToTell: plans.map((p) => p.owner), told };
   } catch (err) {
     return failure(err);
+  }
+});
+
+const SETTINGS_KEY = 'settings';
+const ADMIN_MODULE = 'layer-admin';
+
+async function settings() {
+  return (await storage.get(SETTINGS_KEY)) || { teamProjects: '' };
+}
+
+resolver.define('getSettings', async () => settings());
+
+resolver.define('saveSettings', async (req) => {
+  if (!req.context?.moduleKey?.endsWith(ADMIN_MODULE)) return { error: { message: 'Settings are saved from the admin page.' } };
+  const teamProjects = String(req.payload?.teamProjects || '').slice(0, 10000);
+  await storage.set(SETTINGS_KEY, { teamProjects });
+  return { saved: true, teams: Object.keys(parseTeamProjects(teamProjects)).length };
+});
+
+async function jira(path, body) {
+  const res = await api.asUser().requestJira(path, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Jira answered ${res.status}: ${text.slice(0, 300)}`);
+  return text ? JSON.parse(text) : {};
+}
+
+// "Tell the consumers": one linked issue per team whose repository will break.
+// Already-filed teams are remembered per issue, so a second click adds only new ones.
+resolver.define('tellConsumers', async (req) => {
+  const issue = req.context?.extension?.issue;
+  if (!issue?.key) return { error: { message: 'Open an issue first.' } };
+  try {
+    const entries = blastRadius((await client().changesForIssue(issue.key)).changes);
+    const defaultProject = issue.key.split('-')[0];
+    const plans = planConsumerIssues({
+      issueKey: issue.key,
+      entries,
+      teamProjects: parseTeamProjects((await settings()).teamProjects),
+      defaultProject,
+    });
+    const toldKey = `told:${issue.key}`;
+    const told = (await storage.get(toldKey)) || {};
+    const created = [];
+    for (const plan of plans) {
+      if (told[plan.owner]) continue;
+      const made = await jira(route`/rest/api/3/issue`, {
+        fields: {
+          project: { key: plan.project },
+          issuetype: { name: 'Task' },
+          summary: plan.summary,
+          description: plan.description,
+          labels: ['layer-consumer'],
+        },
+      });
+      await jira(route`/rest/api/3/issueLink`, {
+        type: { name: 'Relates' },
+        inwardIssue: { key: made.key },
+        outwardIssue: { key: issue.key },
+      });
+      told[plan.owner] = made.key;
+      created.push({ owner: plan.owner, key: made.key });
+      await storage.set(toldKey, told);
+    }
+    return { created, told };
+  } catch (err) {
+    if (err instanceof LayerError) return failure(err);
+    console.error(err);
+    return { error: { code: 'jira', message: String(err.message || err) } };
   }
 });
 
