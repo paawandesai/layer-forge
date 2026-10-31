@@ -3,7 +3,7 @@ import api, { fetch, route } from '@forge/api';
 import { kvs as storage } from '@forge/kvs';
 import { createClient, layerConfig, LayerError } from './lib/layer.js';
 import { blastRadius, summarize, consumersText, changesText } from './lib/format.js';
-import { parseTeamProjects, planConsumerIssues } from './lib/tickets.js';
+import { parseTeamProjects, planConsumerIssues, teamsForProject } from './lib/tickets.js';
 
 const client = () => createClient({ ...layerConfig(), fetch });
 
@@ -99,6 +99,28 @@ resolver.define('tellConsumers', async (req) => {
     if (err instanceof LayerError) return failure(err);
     console.error(err);
     return { error: { code: 'jira', message: String(err.message || err) } };
+  }
+});
+
+// Project page: contract changes coming to the teams mapped to this project.
+resolver.define('getIncoming', async (req) => {
+  const projectKey = req.context?.extension?.project?.key;
+  if (!projectKey) return { error: { code: 'no_project', message: 'Open a project to see its incoming changes.' } };
+  const teams = teamsForProject(parseTeamProjects((await settings()).teamProjects), projectKey);
+  if (teams.length === 0) return { projectKey, teams, entries: [] };
+  try {
+    const all = [];
+    for (const owner of teams) all.push(...((await client().changes({ owner })).changes || []));
+    const seen = new Set();
+    const unique = all.filter((c) => {
+      const k = `${c.id}|${c.route?.consumer}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    return { projectKey, teams, entries: blastRadius(unique) };
+  } catch (err) {
+    return failure(err);
   }
 });
 
