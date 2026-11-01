@@ -103,7 +103,8 @@ export function changesText(entries) {
   return entries
     .map((e) => {
       const who = e.consumers.map((c) => `${c.repo} (${c.owners.join(', ') || 'no owners'})`).join(', ');
-      const pr = e.pr ? ` in ${e.producer} PR #${e.pr}` : '';
+      const url = prUrl(e.producer, e.pr);
+      const pr = e.pr ? ` in [${e.producer} #${e.pr}](${url})` : '';
       return `- ${e.contract}${pr}: ${e.class.replace('_', ' ')}, ${e.state.replace('_', ' ')}. Reaches ${who || 'no consumers'}.\n  ${findingLines(e, 3).join('\n  ')}`;
     })
     .join('\n');

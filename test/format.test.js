@@ -55,7 +55,7 @@ test('consumers text names coverage and evidence', () => {
 test('changes text and short repo', () => {
   assert.equal(shortRepo('gitlab.com/a/b'), 'a/b');
   const text = changesText(blastRadius([change('c1', 'github.com/fernway-test/web', ['@fernway-test/ops-tools'])]));
-  assert.match(text, /jobs-api in fernway-test\/jobs-api PR #7: breaking, in flight. Reaches fernway-test\/web \(@fernway-test\/ops-tools\)/);
+  assert.match(text, /jobs-api in \[fernway-test\/jobs-api #7\]\(https:\/\/github\.com\/fernway-test\/jobs-api\/pull\/7\): breaking, in flight. Reaches fernway-test\/web \(@fernway-test\/ops-tools\)/);
 });
 
 test('groupFindings folds one field change across endpoints', async () => {
