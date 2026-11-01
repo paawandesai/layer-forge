@@ -187,11 +187,17 @@ const asText = (fn) => async (payload) => {
   }
 };
 
-export const getConsumers = asText(async ({ contract, repo }) => consumersText(await client().consumers({ name: contract, repo })));
+// Accepts owner/name and adds the GitHub host, which Layer's repository IDs carry.
+const fullRepo = (repo) => (repo && !repo.split('/')[0].includes('.') ? `github.com/${repo}` : repo);
+
+export const getConsumers = asText(async ({ contract, repo }) => {
+  if (!contract || !repo) return 'Give the contract name and the repository that owns it, for example jobs-api in fernway-test/jobs-api.';
+  return consumersText(await client().consumers({ name: contract, repo: fullRepo(repo) }));
+});
 
 export const getIncomingChanges = asText(async ({ repo, owner }) => {
   if (!repo && !owner) return 'Give a consuming repository (owner/name) or an owner handle such as @acme/web-team.';
-  const r = repo && !repo.includes('.') ? `github.com/${repo}` : repo;
+  const r = fullRepo(repo);
   return changesText(blastRadius((await client().changes({ repo: r, owner })).changes));
 });
 
