@@ -11,7 +11,14 @@ function App() {
     invoke('getSettings').then(setSettings, () => setSettings({ teamProjects: '' }));
   }, []);
 
+  const [demo, setDemo] = useState(null);
+  const [loading, setLoading] = useState(false);
   const save = async (data) => setResult(await invoke('saveSettings', data));
+  const loadDemo = async () => {
+    setLoading(true);
+    setDemo(await invoke('loadDemo').catch((e) => ({ error: { message: String(e) } })));
+    setLoading(false);
+  };
 
   if (!settings) return <Spinner label="Loading settings" />;
   return (
@@ -40,6 +47,24 @@ function App() {
       {result?.saved ? (
         <SectionMessage appearance="success">
           <Text>{`Saved ${result.teams} team mapping${result.teams === 1 ? '' : 's'}.`}</Text>
+        </SectionMessage>
+      ) : null}
+      <Heading size="small">Fernway demo</Heading>
+      <Text>
+        Creates the Fernway Jobs project (FERN) with six issues whose pull requests live in the Fernway test company, then maps the Fernway teams to it.
+        Open FERN-1 afterwards to see its blast radius.
+      </Text>
+      <Button isDisabled={loading} onClick={loadDemo}>
+        {loading ? 'Loading the demo' : 'Load the Fernway demo'}
+      </Button>
+      {demo?.keys ? (
+        <SectionMessage appearance="success">
+          <Text>{demo.created.length ? `Created ${demo.created.join(', ')} in ${demo.project}.` : `The demo is already loaded in ${demo.project}.`}</Text>
+        </SectionMessage>
+      ) : null}
+      {demo?.error ? (
+        <SectionMessage appearance="error">
+          <Text>{demo.error.message}</Text>
         </SectionMessage>
       ) : null}
       {result?.error ? (
