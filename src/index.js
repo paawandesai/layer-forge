@@ -1,5 +1,5 @@
-import Resolver from '@forge/resolver';
-import api, { fetch, route } from '@forge/api';
+import ResolverModule from '@forge/resolver';
+import { asUser, fetch, route } from '@forge/api';
 import { kvs as storage } from '@forge/kvs';
 import { createClient, layerConfig, LayerError } from './lib/layer.js';
 import { blastRadius, summarize, consumersText, changesText } from './lib/format.js';
@@ -14,6 +14,8 @@ function failure(err) {
   return { error: { code: 'internal', message: 'Layer could not be reached. Try again in a minute.' } };
 }
 
+// The package is CommonJS; under "type": "module" its default import is the whole exports object.
+const Resolver = ResolverModule.default ?? ResolverModule;
 const resolver = new Resolver();
 
 // Issue panel: the contract changes in this issue's pull requests.
@@ -48,7 +50,7 @@ resolver.define('saveSettings', async (req) => {
 });
 
 async function jira(path, body, { method = body ? 'POST' : 'GET', allow404 = false } = {}) {
-  const res = await api.asUser().requestJira(path, {
+  const res = await asUser().requestJira(path, {
     method,
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     ...(body ? { body: JSON.stringify(body) } : {}),
