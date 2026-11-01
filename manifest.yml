@@ -7,6 +7,15 @@ modules:
       render: native
       title: Blast radius
       icon: resource:icons;layer.svg
+  jira:issueContext:
+    - key: layer-blast-radius-context
+      resource: panel
+      resolver:
+        function: resolver
+      render: native
+      title: Blast radius
+      label: Layer
+      icon: resource:icons;layer.svg
   jira:projectPage:
     - key: layer-incoming
       resource: project
