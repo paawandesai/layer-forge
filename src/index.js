@@ -32,7 +32,15 @@ resolver.define('getBlastRadius', async (req) => {
       ? null
       : await jira(route`/rest/api/3/issue/${issueKey}?fields=labels,issuelinks`, null, { allow404: true })
           .then(filedFor, () => null);
-    return { issueKey, filedFor: parent, summary: summarize(entries), entries, teamsToTell: plans.map((p) => p.owner), told };
+    return {
+      issueKey,
+      filedFor: parent,
+      summary: summarize(entries),
+      entries,
+      routes: (body.changes || []).length,
+      teamsToTell: plans.map((p) => p.owner),
+      told,
+    };
   } catch (err) {
     return failure(err);
   }
