@@ -1,3 +1,5 @@
+import { reasonLine, risk } from './risk.js';
+
 // Pure shaping of Layer responses for the issue panel and Rovo answers.
 
 const CLASS_ORDER = { breaking: 0, possibly_breaking: 1, compatible: 2 };
@@ -102,7 +104,9 @@ export function changesText(entries) {
   if (entries.length === 0) return 'No contract changes found.';
   return entries
     .map((e) => {
-      const who = e.consumers.map((c) => `${c.repo} (${c.owners.join(', ') || 'no owners'})`).join(', ');
+      const who = e.consumers
+        .map((c) => `${c.repo} (${risk(c.severity).label.toLowerCase()}: ${reasonLine(c)}; ${c.owners.join(', ') || 'no owners'})`)
+        .join(', ');
       const url = prUrl(e.producer, e.pr);
       const pr = e.pr ? ` in [${e.producer} #${e.pr}](${url})` : '';
       return `- ${e.contract}${pr}: ${e.class.replace('_', ' ')}, ${e.state.replace('_', ' ')}. Reaches ${who || 'no consumers'}.\n  ${findingLines(e, 3).join('\n  ')}`;
