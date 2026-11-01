@@ -58,3 +58,11 @@ test('teams for a project come from the mapping', async () => {
   assert.deepEqual(teamsForProject(map, 'WEB'), ['@a/web', '@a/admin']);
   assert.deepEqual(teamsForProject(map, 'NONE'), []);
 });
+
+test('filedFor finds the issue a consumer task was filed for', async () => {
+  const { filedFor } = await import('../src/lib/tickets.js');
+  const link = { type: { name: 'Relates' }, outwardIssue: { key: 'FERN-1' } };
+  assert.equal(filedFor({ fields: { labels: ['layer-consumer'], issuelinks: [link] } }), 'FERN-1');
+  assert.equal(filedFor({ fields: { labels: [], issuelinks: [link] } }), null);
+  assert.equal(filedFor({ fields: { labels: ['layer-consumer'], issuelinks: [] } }), null);
+});

@@ -52,6 +52,17 @@ function App() {
 
   if (!state) return <Spinner label="Asking Layer" />;
   if (state.error) return <ErrorState error={state.error} />;
+  if (state.filedFor) {
+    return (
+      <SectionMessage title="Filed by Layer" appearance="information">
+        <Text>
+          {'Layer filed this for your team because '}
+          <Link href={`/browse/${state.filedFor}`}>{state.filedFor}</Link>
+          {' changes a contract your repository uses. The full blast radius is on that issue.'}
+        </Text>
+      </SectionMessage>
+    );
+  }
   return (
     <Stack space="space.200">
       <Heading size="small">{state.summary}</Heading>
