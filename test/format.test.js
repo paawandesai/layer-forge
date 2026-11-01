@@ -70,3 +70,9 @@ test('groupFindings folds one field change across endpoints', async () => {
     { text: 'endpoint removed', locations: ['DELETE /jobs/{id}'] },
   ]);
 });
+
+test('findingLines prefers grouped findings', async () => {
+  const { findingLines } = await import('../src/lib/format.js');
+  assert.deepEqual(findingLines({ findings: ['a', 'b'], findingGroups: [{ text: 'x changed', locations: ['GET /a', 'GET /b'] }] }), ['x changed (GET /a, GET /b)']);
+  assert.deepEqual(findingLines({ findings: ['a', 'b'] }, 1), ['a']);
+});
