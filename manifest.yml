@@ -61,10 +61,8 @@ modules:
         repo:
           title: Producer repository
           type: string
-          required: false
-          description: The repository that owns the contract, for example
-            github.com/fernway-test/jobs-api. Needed only when two repositories
-            declare the same name.
+          required: true
+          description: The repository that owns the contract, for example fernway-test/jobs-api. Ask the user if you do not know it.
     - key: get-incoming-changes
       name: Get incoming contract changes
       function: incoming
