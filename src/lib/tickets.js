@@ -62,3 +62,15 @@ export function teamsForProject(teamProjects, projectKey) {
     .filter(([, key]) => key === projectKey)
     .map(([team]) => team);
 }
+
+// For an issue that "Tell the consumers" filed: the issue it was filed for,
+// read from its layer-consumer label and its "Relates" link.
+export function filedFor(issue) {
+  const fields = issue?.fields || {};
+  if (!(fields.labels || []).includes('layer-consumer')) return null;
+  for (const link of fields.issuelinks || []) {
+    const other = link.outwardIssue || link.inwardIssue;
+    if (link.type?.name === 'Relates' && other?.key) return other.key;
+  }
+  return null;
+}

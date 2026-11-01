@@ -3,7 +3,7 @@ import { asUser, fetch, route } from '@forge/api';
 import { kvs as storage } from '@forge/kvs';
 import { createClient, layerConfig, LayerError } from './lib/layer.js';
 import { blastRadius, summarize, consumersText, changesText } from './lib/format.js';
-import { parseTeamProjects, planConsumerIssues, teamsForProject } from './lib/tickets.js';
+import { filedFor, parseTeamProjects, planConsumerIssues, teamsForProject } from './lib/tickets.js';
 import { DEMO_ISSUES, DEMO_PROJECT, demoKeys, demoTeamProjects } from './lib/demo.js';
 
 const client = () => createClient({ ...layerConfig(), fetch });
@@ -27,7 +27,12 @@ resolver.define('getBlastRadius', async (req) => {
     const entries = blastRadius(body.changes);
     const plans = planConsumerIssues({ issueKey, entries, defaultProject: issueKey.split('-')[0] });
     const told = (await storage.get(`told:${issueKey}`)) || {};
-    return { issueKey, summary: summarize(entries), entries, teamsToTell: plans.map((p) => p.owner), told };
+    // A task Layer filed for another issue points back to it instead of saying "no changes".
+    const parent = entries.length
+      ? null
+      : await jira(route`/rest/api/3/issue/${issueKey}?fields=labels,issuelinks`, null, { allow404: true })
+          .then(filedFor, () => null);
+    return { issueKey, filedFor: parent, summary: summarize(entries), entries, teamsToTell: plans.map((p) => p.owner), told };
   } catch (err) {
     return failure(err);
   }
