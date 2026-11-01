@@ -1,4 +1,5 @@
 // Turns a blast radius into one Jira issue per affected owner team.
+import { findingLines } from './format.js';
 
 // Parses admin settings lines such as "@fernway-test/dispatch = DISP".
 export function parseTeamProjects(text = '') {
@@ -43,7 +44,7 @@ export function planConsumerIssues({ issueKey, entries, teamProjects = {}, defau
     ];
     for (const { entry, consumer } of items) {
       body.push(para(text(`${entry.contract} (${entry.producer}${entry.pr ? ` PR #${entry.pr}` : ''}) in ${consumer.repo}:`)));
-      const lines = [...entry.findings.slice(0, 5), ...consumer.why.map((w) => `Why ${consumer.repo} is affected: ${w}`)];
+      const lines = [...findingLines(entry, 5), ...consumer.why.map((w) => `Why ${consumer.repo} is affected: ${w}`)];
       if (lines.length) body.push(bullets(lines));
     }
     return {

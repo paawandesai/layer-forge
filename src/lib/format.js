@@ -60,6 +60,15 @@ export function groupFindings(findings = []) {
   return [...groups.values()];
 }
 
+// Readable finding lines: grouped when available, raw otherwise.
+export function findingLines(entry, limit = 5) {
+  const groups = entry.findingGroups;
+  const lines = groups?.length
+    ? groups.map((g) => (g.locations.length ? `${g.text} (${g.locations.join(', ')})` : g.text))
+    : entry.findings || [];
+  return lines.slice(0, limit);
+}
+
 export function prUrl(producer, pr) {
   return producer && pr ? `https://github.com/${producer}/pull/${pr}` : '';
 }
@@ -95,7 +104,7 @@ export function changesText(entries) {
     .map((e) => {
       const who = e.consumers.map((c) => `${c.repo} (${c.owners.join(', ') || 'no owners'})`).join(', ');
       const pr = e.pr ? ` in ${e.producer} PR #${e.pr}` : '';
-      return `- ${e.contract}${pr}: ${e.class.replace('_', ' ')}, ${e.state.replace('_', ' ')}. Reaches ${who || 'no consumers'}.\n  ${e.findings.slice(0, 3).join('\n  ')}`;
+      return `- ${e.contract}${pr}: ${e.class.replace('_', ' ')}, ${e.state.replace('_', ' ')}. Reaches ${who || 'no consumers'}.\n  ${findingLines(e, 3).join('\n  ')}`;
     })
     .join('\n');
 }
