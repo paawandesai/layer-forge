@@ -39,8 +39,9 @@ modules:
       icon: resource:icons;layer.svg
       prompt: resource:prompts;agent.txt
       conversationStarters:
+        - What does FERN-1 break?
         - What will this issue's pull requests break?
-        - Who uses the jobs-api contract?
+        - Who uses jobs-api in fernway-test/jobs-api?
         - What contract changes are coming to the APIs my team calls?
       actions:
         - get-contract-consumers
