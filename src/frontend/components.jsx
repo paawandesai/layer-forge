@@ -2,17 +2,12 @@ import React from 'react';
 import { Button, Inline, Link, Lozenge, SectionMessage, Spinner, Stack, Text, Strong } from '@forge/react';
 import { prUrl } from '../lib/format.js';
 import { errorView } from '../lib/states.js';
+import { reasonLine, risk } from '../lib/risk.js';
 
 const CLASS_LOZENGE = {
   breaking: { appearance: 'removed', label: 'Breaking' },
   possibly_breaking: { appearance: 'moved', label: 'Possibly breaking' },
   compatible: { appearance: 'success', label: 'Compatible' },
-};
-
-const SEVERITY_LOZENGE = {
-  action: { appearance: 'removed', label: 'Will break' },
-  watch: { appearance: 'moved', label: 'On upgrade' },
-  info: { appearance: 'default', label: 'Informed' },
 };
 
 export function Loading({ label }) {
@@ -63,14 +58,15 @@ export function ChangeCard({ entry }) {
         <Stack space="space.100">
           <Strong>{`Consumers (${entry.consumers.length})`}</Strong>
           {entry.consumers.map((c, i) => {
-            const sev = SEVERITY_LOZENGE[c.severity] || SEVERITY_LOZENGE.info;
+            const sev = risk(c.severity);
             return (
               <Stack key={`${entry.id}-${i}`} space="space.025">
                 <Inline space="space.100" alignBlock="center" shouldWrap>
                   <Lozenge appearance={sev.appearance}>{sev.label}</Lozenge>
                   <Text>{c.repo}</Text>
                 </Inline>
-                <Text size="small" color="color.text.subtlest">{c.owners.join(', ') || 'No owners'}</Text>
+                <Text size="small">{reasonLine(c)}</Text>
+                <Text size="small" color="color.text.subtlest">{c.owners.join(', ') || 'No code owners listed'}</Text>
               </Stack>
             );
           })}
