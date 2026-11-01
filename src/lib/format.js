@@ -21,6 +21,7 @@ export function blastRadius(changes = []) {
         state: c.state || '',
         pr: c.change_request,
         findings: (c.findings || []).map((f) => `${f.location}: ${f.message}`),
+        findingGroups: groupFindings(c.findings || []),
         findingsTotal: c.findings_total ?? (c.findings || []).length,
         consumers: [],
       };
@@ -38,6 +39,29 @@ export function blastRadius(changes = []) {
   return [...byId.values()].sort(
     (a, b) => (CLASS_ORDER[a.class] ?? 9) - (CLASS_ORDER[b.class] ?? 9) || a.contract.localeCompare(b.contract),
   );
+}
+
+// One finding per endpoint repeats the same field change many times. Groups
+// findings whose message matches once the status code and the field's parent
+// path are dropped, and strips the backticks the checker quotes values with.
+export function groupFindings(findings = []) {
+  const groups = new Map();
+  for (const f of findings) {
+    const text = String(f.message || '')
+      .replace(/\s+for status `?\d{3}`?/g, '')
+      .replace(/`([^`]*)`/g, (_, v) => v.split('/').pop())
+      .replace(/^the /, '')
+      .replace(/^(\S+) (?:request|response)'s property type changed from (\S+) to (\S+)$/, '$1 changed from $2 to $3');
+    const key = text;
+    let g = groups.get(key);
+    if (!g) groups.set(key, (g = { text, locations: [] }));
+    if (f.location && !g.locations.includes(f.location)) g.locations.push(f.location);
+  }
+  return [...groups.values()];
+}
+
+export function prUrl(producer, pr) {
+  return producer && pr ? `https://github.com/${producer}/pull/${pr}` : '';
 }
 
 export function summarize(entries) {

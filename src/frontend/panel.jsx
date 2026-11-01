@@ -21,12 +21,12 @@ function TellConsumers({ teams, told: initialTold }) {
   return (
     <Stack space="space.100">
       {pending.length ? (
-        <Inline space="space.100" alignBlock="center">
+        <Stack space="space.050">
           <Button appearance="primary" isDisabled={busy} onClick={tell}>
             {busy ? 'Filing issues' : `Tell ${pending.length} team${pending.length === 1 ? '' : 's'}`}
           </Button>
-          <Text>{`Files a linked issue for ${pending.join(', ')}.`}</Text>
-        </Inline>
+          <Text size="small">{`Files a linked issue for ${pending.join(', ')}.`}</Text>
+        </Stack>
       ) : null}
       {Object.entries(told).map(([owner, key]) => (
         <Inline key={owner} space="space.100">

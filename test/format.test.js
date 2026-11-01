@@ -57,3 +57,16 @@ test('changes text and short repo', () => {
   const text = changesText(blastRadius([change('c1', 'github.com/fernway-test/web', ['@fernway-test/ops-tools'])]));
   assert.match(text, /jobs-api in fernway-test\/jobs-api PR #7: breaking, in flight. Reaches fernway-test\/web \(@fernway-test\/ops-tools\)/);
 });
+
+test('groupFindings folds one field change across endpoints', async () => {
+  const { groupFindings } = await import('../src/lib/format.js');
+  const groups = groupFindings([
+    { location: 'GET /jobs', message: "the `jobs/items/technician_id` response's property `type` changed from `string` to `integer` for status `200`" },
+    { location: 'POST /jobs', message: "the `technician_id` response's property `type` changed from `string` to `integer` for status `201`" },
+    { location: 'DELETE /jobs/{id}', message: 'endpoint removed' },
+  ]);
+  assert.deepEqual(groups, [
+    { text: 'technician_id changed from string to integer', locations: ['GET /jobs', 'POST /jobs'] },
+    { text: 'endpoint removed', locations: ['DELETE /jobs/{id}'] },
+  ]);
+});
