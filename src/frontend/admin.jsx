@@ -1,14 +1,60 @@
 import React, { useEffect, useState } from 'react';
-import ForgeReconciler, { Button, Form, FormFooter, FormSection, Heading, Label, SectionMessage, Spinner, Stack, Text, TextArea, useForm } from '@forge/react';
+import ForgeReconciler, {
+  Button,
+  Form,
+  FormFooter,
+  FormSection,
+  Heading,
+  Inline,
+  Label,
+  Link,
+  Lozenge,
+  SectionMessage,
+  Spinner,
+  Stack,
+  Strong,
+  Text,
+  TextArea,
+  useForm,
+} from '@forge/react';
 import { invoke } from '@forge/bridge';
+
+const STEP_LOZENGE = {
+  done: { appearance: 'success', label: 'Done' },
+  todo: { appearance: 'inprogress', label: 'Next' },
+  waiting: { appearance: 'default', label: 'Waiting' },
+};
+
+function Checklist({ setup }) {
+  if (!setup) return <Spinner size="small" label="Checking setup" />;
+  return (
+    <Stack space="space.150">
+      {setup.steps.map((s, i) => {
+        const lz = i === setup.next ? STEP_LOZENGE.todo : STEP_LOZENGE[s.status === 'done' ? 'done' : 'waiting'];
+        return (
+          <Stack key={s.title} space="space.050">
+            <Inline space="space.100" alignBlock="center">
+              <Lozenge appearance={lz.appearance}>{lz.label}</Lozenge>
+              {s.href ? <Link href={s.href}>{`${i + 1}. ${s.title}`}</Link> : <Strong>{`${i + 1}. ${s.title}`}</Strong>}
+            </Inline>
+            <Text size="small">{s.body}</Text>
+          </Stack>
+        );
+      })}
+    </Stack>
+  );
+}
 
 function App() {
   const [settings, setSettings] = useState(null);
   const [result, setResult] = useState(null);
   const { handleSubmit, register } = useForm();
 
+  const [setup, setSetup] = useState(null);
+  const refreshSetup = () => invoke('getSetup').then(setSetup, () => setSetup(null));
   useEffect(() => {
     invoke('getSettings').then(setSettings, () => setSettings({ teamProjects: '' }));
+    refreshSetup();
   }, []);
 
   const [demo, setDemo] = useState(null);
@@ -18,12 +64,16 @@ function App() {
     setLoading(true);
     setDemo(await invoke('loadDemo').catch((e) => ({ error: { message: String(e) } })));
     setLoading(false);
+    refreshSetup();
   };
 
   if (!settings) return <Spinner label="Loading settings" />;
   return (
     <Stack space="space.200">
       <Heading size="medium">Layer for Jira</Heading>
+      <Heading size="small">Get started</Heading>
+      <Checklist setup={setup} />
+      <Heading size="small">Team routing</Heading>
       <Text>
         This site reads Layer's contract graph with a read-only token, limited to the repositories your Layer operator allowed.
         Map each code owner team to the Jira project where its issues belong. Teams without a line get issues in the changing issue's project.

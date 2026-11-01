@@ -5,6 +5,7 @@ import { createClient, layerConfig, LayerError } from './lib/layer.js';
 import { blastRadius, summarize, consumersText, changesText } from './lib/format.js';
 import { filedFor, parseTeamProjects, planConsumerIssues, teamsForProject } from './lib/tickets.js';
 import { DEMO_ISSUES, DEMO_PROJECT, demoKeys, demoTeamProjects } from './lib/demo.js';
+import { setupSteps } from './lib/setup.js';
 
 const client = () => createClient({ ...layerConfig(), fetch });
 
@@ -167,6 +168,33 @@ resolver.define('loadDemo', async (req) => {
     console.error(err);
     return { error: { message: String(err.message || err) } };
   }
+});
+
+// Admin page: the first-run checklist. The FERN-1 query doubles as the connection check.
+resolver.define('getSetup', async () => {
+  const [connection, demo] = await Promise.all([
+    client()
+      .changesForIssue(demoKeys()[0])
+      .then(
+        (body) => ({ ok: true, breaking: blastRadius(body.changes).filter((e) => e.class === 'breaking').length }),
+        (err) => failure(err),
+      ),
+    jira(route`/rest/api/3/project/${DEMO_PROJECT.key}`, null, { allow404: true })
+      .then(async (project) => {
+        if (!project) return { exists: false, keys: [] };
+        const found = await jira(route`/rest/api/3/search/jql`, {
+          jql: `project = ${DEMO_PROJECT.key} ORDER BY key ASC`,
+          fields: ['summary'],
+          maxResults: 100,
+        });
+        return { exists: true, keys: (found.issues || []).map((i) => i.key) };
+      })
+      .catch((err) => {
+        console.error(err);
+        return { exists: false, keys: [] };
+      }),
+  ]);
+  return setupSteps({ connection, demo });
 });
 
 // Project page: contract changes coming to the teams mapped to this project.
