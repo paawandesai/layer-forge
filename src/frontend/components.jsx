@@ -1,5 +1,6 @@
 import React from 'react';
-import { DynamicTable, Inline, Lozenge, SectionMessage, Stack, Text, Strong } from '@forge/react';
+import { Inline, Link, Lozenge, SectionMessage, Stack, Text, Strong } from '@forge/react';
+import { prUrl } from '../lib/format.js';
 
 const CLASS_LOZENGE = {
   breaking: { appearance: 'removed', label: 'Breaking' },
@@ -28,39 +29,44 @@ export function ErrorState({ error }) {
   );
 }
 
+// Stacked rather than tabular, so it reads in the narrow issue sidebar too.
 export function ChangeCard({ entry }) {
   const cls = CLASS_LOZENGE[entry.class] || CLASS_LOZENGE.compatible;
-  const rows = entry.consumers.map((c, i) => {
-    const sev = SEVERITY_LOZENGE[c.severity] || SEVERITY_LOZENGE.info;
-    return {
-      key: `${entry.id}-${i}`,
-      cells: [
-        { key: 'repo', content: c.repo },
-        { key: 'owners', content: c.owners.join(', ') || 'No owners' },
-        { key: 'impact', content: <Lozenge appearance={sev.appearance}>{sev.label}</Lozenge> },
-      ],
-    };
-  });
+  const url = prUrl(entry.producer, entry.pr);
+  const groups = entry.findingGroups || [];
   return (
     <Stack space="space.100">
-      <Inline space="space.100" alignBlock="center">
+      <Inline space="space.100" alignBlock="center" shouldWrap>
         <Strong>{entry.contract}</Strong>
         <Lozenge appearance={cls.appearance}>{cls.label}</Lozenge>
-        <Text>{entry.producer}{entry.pr ? ` #${entry.pr}` : ''}</Text>
       </Inline>
-      {entry.findings.slice(0, 5).map((f, i) => (
-        <Text key={i}>{f}</Text>
+      {url ? <Link href={url} openNewTab>{`${entry.producer} #${entry.pr}`}</Link> : <Text>{entry.producer}</Text>}
+      {groups.slice(0, 3).map((g, i) => (
+        <Stack key={i} space="space.050">
+          <Text>{g.text}</Text>
+          <Text size="small" color="color.text.subtlest">{g.locations.join(', ')}</Text>
+        </Stack>
       ))}
-      {entry.findingsTotal > 5 ? <Text>{`and ${entry.findingsTotal - 5} more`}</Text> : null}
-      {rows.length ? (
-        <DynamicTable
-          head={{ cells: [{ key: 'repo', content: 'Consumer' }, { key: 'owners', content: 'Owners' }, { key: 'impact', content: 'Impact' }] }}
-          rows={rows}
-        />
+      {groups.length > 3 ? <Text size="small">{`and ${groups.length - 3} more kinds of change`}</Text> : null}
+      {entry.consumers.length ? (
+        <Stack space="space.100">
+          <Strong>{`Consumers (${entry.consumers.length})`}</Strong>
+          {entry.consumers.map((c, i) => {
+            const sev = SEVERITY_LOZENGE[c.severity] || SEVERITY_LOZENGE.info;
+            return (
+              <Stack key={`${entry.id}-${i}`} space="space.025">
+                <Inline space="space.100" alignBlock="center" shouldWrap>
+                  <Lozenge appearance={sev.appearance}>{sev.label}</Lozenge>
+                  <Text>{c.repo}</Text>
+                </Inline>
+                <Text size="small" color="color.text.subtlest">{c.owners.join(', ') || 'No owners'}</Text>
+              </Stack>
+            );
+          })}
+        </Stack>
       ) : (
         <Text>No other repository consumes this contract.</Text>
       )}
     </Stack>
   );
 }
-
