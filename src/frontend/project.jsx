@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import ForgeReconciler, { Heading, SectionMessage, Spinner, Stack, Text } from '@forge/react';
+import ForgeReconciler, { Heading, SectionMessage, Stack, Text } from '@forge/react';
 import { invoke } from '@forge/bridge';
-import { ChangeCard, ErrorState } from './components.jsx';
+import { ChangeCard, ErrorState, Loading } from './components.jsx';
 
 function App() {
   const [state, setState] = useState(null);
-  useEffect(() => {
+  const load = () => {
+    setState(null);
     invoke('getIncoming').then(setState, (e) => setState({ error: { message: String(e) } }));
-  }, []);
+  };
+  useEffect(load, []);
 
-  if (!state) return <Spinner label="Asking Layer" />;
-  if (state.error) return <ErrorState error={state.error} />;
+  if (!state) return <Loading label="Collecting changes to the contracts this project's teams use" />;
+  if (state.error) return <ErrorState error={state.error} onRetry={load} />;
   if (state.teams.length === 0) {
     return (
       <SectionMessage title="No teams mapped to this project" appearance="information">

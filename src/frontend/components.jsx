@@ -1,6 +1,7 @@
 import React from 'react';
-import { Inline, Link, Lozenge, SectionMessage, Stack, Text, Strong } from '@forge/react';
+import { Button, Inline, Link, Lozenge, SectionMessage, Spinner, Stack, Text, Strong } from '@forge/react';
 import { prUrl } from '../lib/format.js';
+import { errorView } from '../lib/states.js';
 
 const CLASS_LOZENGE = {
   breaking: { appearance: 'removed', label: 'Breaking' },
@@ -14,17 +15,27 @@ const SEVERITY_LOZENGE = {
   info: { appearance: 'default', label: 'Informed' },
 };
 
-export function ErrorState({ error }) {
-  if (error.code === 'not_connected') {
-    return (
-      <SectionMessage title="Connect Layer" appearance="information">
-        <Text>An admin connects this site to Layer under Apps, Layer for Jira settings.</Text>
-      </SectionMessage>
-    );
-  }
+export function Loading({ label }) {
   return (
-    <SectionMessage title="Blast radius unavailable" appearance="warning">
-      <Text>{error.message}</Text>
+    <Inline space="space.100" alignBlock="center">
+      <Spinner size="small" label={label} />
+      <Text color="color.text.subtle">{label}</Text>
+    </Inline>
+  );
+}
+
+export function ErrorState({ error, onRetry }) {
+  const v = errorView(error);
+  return (
+    <SectionMessage title={v.title} appearance={v.appearance}>
+      <Stack space="space.100">
+        <Text>{v.body}</Text>
+        {v.retry && onRetry ? (
+          <Inline>
+            <Button onClick={onRetry}>Try again</Button>
+          </Inline>
+        ) : null}
+      </Stack>
     </SectionMessage>
   );
 }
