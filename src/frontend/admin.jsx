@@ -109,7 +109,7 @@ function App() {
       </Button>
       {demo?.keys ? (
         <SectionMessage appearance="success">
-          <Text>{demo.created.length ? `Created ${demo.created.join(', ')} in ${demo.project}.` : `The demo is already loaded in ${demo.project}.`}</Text>
+          <Text>{demo.report}</Text>
         </SectionMessage>
       ) : null}
       {demo?.error ? (
