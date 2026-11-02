@@ -311,10 +311,20 @@ export const getConsumers = asText(async ({ contract, repo }) => {
   return consumersText(await client().consumers({ name: contract, repo: fullRepo(repo) }));
 });
 
-export const getIncomingChanges = asText(async ({ repo, owner }) => {
-  if (!repo && !owner) return 'Give a consuming repository (owner/name) or an owner handle such as @acme/web-team.';
-  const r = fullRepo(repo);
-  return changesText(blastRadius((await client().changes({ repo: r, owner })).changes));
+// "My team": with no repository or owner, the teams an admin mapped to the
+// named project, or to the project the user is looking at.
+export const getIncomingChanges = asText(async ({ repo, owner, project, context }) => {
+  if (repo || owner) return changesText(blastRadius((await client().changes({ repo: fullRepo(repo), owner })).changes));
+  const projectKey = String(project || context?.jira?.projectKey || '').toUpperCase();
+  if (!projectKey) return 'Give a consuming repository (owner/name), an owner handle such as @acme/web-team, or a Jira project key.';
+  const teams = teamsForProject(parseTeamProjects((await settings()).teamProjects), projectKey);
+  if (!teams.length) return `No code owner teams are mapped to Jira project ${projectKey}. Ask for the team's owner handle, such as @acme/web-team.`;
+  const sections = [];
+  for (const team of teams) {
+    const entries = blastRadius((await client().changes({ owner: team })).changes);
+    sections.push(`${team} (mapped to ${projectKey}):\n${changesText(entries)}`);
+  }
+  return sections.join('\n\n');
 });
 
 export const getIssueChanges = asText(async (payload) => {
