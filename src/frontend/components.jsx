@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Inline, Link, Lozenge, SectionMessage, Spinner, Stack, Text, Strong } from '@forge/react';
 import { prUrl } from '../lib/format.js';
 import { errorView } from '../lib/states.js';
-import { reasonLine, risk } from '../lib/risk.js';
+import { reasonLine, risk, riskAppearance, riskLabel } from '../lib/risk.js';
 
 const CLASS_LOZENGE = {
   breaking: { appearance: 'removed', label: 'Breaking' },
@@ -56,7 +56,13 @@ export function ChangeCard({ entry }) {
       <Inline space="space.100" alignBlock="center" shouldWrap>
         <Strong>{entry.contract}</Strong>
         <Lozenge appearance={cls.appearance}>{cls.label}</Lozenge>
+        {entry.risk ? (
+          <Lozenge appearance={riskAppearance(entry.risk)} isBold={entry.risk.level <= 2}>
+            {riskLabel(entry.risk)}
+          </Lozenge>
+        ) : null}
       </Inline>
+      {entry.risk?.reason ? <Text size="small">{entry.risk.reason}</Text> : null}
       {url ? <Link href={url} openNewTab>{`${entry.producer} #${entry.pr}`}</Link> : <Text>{entry.producer}</Text>}
       {entry.issue && entry.issueSummary !== null && entry.issueSummary !== undefined ? (
         <Text size="small">

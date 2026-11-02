@@ -1,4 +1,4 @@
-import { reasonLine, risk } from './risk.js';
+import { reasonLine, risk, riskLabel } from './risk.js';
 
 // Pure shaping of Layer responses for the issue panel and Rovo answers.
 
@@ -23,6 +23,7 @@ export function blastRadius(changes = []) {
         state: c.state || '',
         pr: c.change_request,
         issue: issueKeyIn(c.ref),
+        risk: c.risk && c.risk.name ? { level: c.risk.level, name: c.risk.name, reason: c.risk.reason || '' } : null,
         findings: (c.findings || []).map((f) => `${f.location}: ${f.message}`),
         findingGroups: groupFindings(c.findings || []),
         findingsTotal: c.findings_total ?? (c.findings || []).length,
@@ -110,7 +111,8 @@ export function changesText(entries) {
         .join(', ');
       const url = prUrl(e.producer, e.pr);
       const pr = e.pr ? ` in [${e.producer} #${e.pr}](${url})` : '';
-      return `- ${e.contract}${pr}: ${e.class.replace('_', ' ')}, ${e.state.replace('_', ' ')}. Reaches ${who || 'no consumers'}.\n  ${findingLines(e, 3).join('\n  ')}`;
+      const level = e.risk ? ` ${riskLabel(e.risk)} (${e.risk.reason}).` : '';
+      return `- ${e.contract}${pr}: ${e.class.replace('_', ' ')}, ${e.state.replace('_', ' ')}.${level} Reaches ${who || 'no consumers'}.\n  ${findingLines(e, 3).join('\n  ')}`;
     })
     .join('\n');
 }
