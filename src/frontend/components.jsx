@@ -57,13 +57,13 @@ export function ChangeCard({ entry }) {
       {groups.slice(0, 3).map((g, i) => (
         <Stack key={i} space="space.050">
           <Text>{g.text}</Text>
-          <Text size="small" color="color.text.subtlest">{g.locations.join(', ')}</Text>
+          <Text size="small" color="color.text.subtle">{g.locations.join(', ')}</Text>
         </Stack>
       ))}
       {groups.length > 3 ? <Text size="small">{`and ${groups.length - 3} more kinds of change`}</Text> : null}
       {entry.consumers.length ? (
         <Stack space="space.100">
-          <Strong>{`Consumers (${entry.consumers.length})`}</Strong>
+          <Strong>{`Who uses it (${entry.consumers.length})`}</Strong>
           {entry.consumers.map((c, i) => {
             const sev = risk(c.severity);
             return (
@@ -73,7 +73,7 @@ export function ChangeCard({ entry }) {
                   <Text>{c.repo}</Text>
                 </Inline>
                 <Text size="small">{reasonLine(c)}</Text>
-                <Text size="small" color="color.text.subtlest">{c.owners.join(', ') || 'No code owners listed'}</Text>
+                <Text size="small" color="color.text.subtle">{c.owners.join(', ') || 'No code owners listed'}</Text>
               </Stack>
             );
           })}

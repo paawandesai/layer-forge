@@ -9,7 +9,7 @@ export function errorView(error = {}) {
       kind: 'not_connected',
       appearance: 'information',
       title: 'Layer is not connected yet',
-      body: 'A Jira admin connects this site under Apps, Manage apps, Layer for Jira. Until then this panel has nothing to show.',
+      body: 'A Jira admin connects this site from Settings, Apps, Layer for Jira. Until then there is nothing to show here.',
       retry: false,
     };
   }
@@ -55,7 +55,7 @@ export function emptyView(issueKey) {
 export function partialNote(entries = [], { limit = 200, routes = 0 } = {}) {
   const hidden = entries.reduce((n, e) => n + Math.max(0, (e.findingsTotal || 0) - (e.findings || []).length), 0);
   const parts = [];
-  if (routes >= limit) parts.push(`Showing the newest ${limit} routes; older ones are left out.`);
+  if (routes >= limit) parts.push(`Showing the ${limit} newest results; older ones are left out.`);
   if (hidden > 0) parts.push(`${hidden} more finding${hidden === 1 ? ' is' : 's are'} on the pull requests.`);
   return parts.join(' ');
 }

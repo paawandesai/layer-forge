@@ -26,5 +26,5 @@ test('partialNote reports trimmed findings and the route limit', () => {
   assert.equal(partialNote([{ findingsTotal: 3, findings: [1, 2, 3] }]), '');
   assert.equal(partialNote([{ findingsTotal: 5, findings: [1, 2] }]), '3 more findings are on the pull requests.');
   assert.equal(partialNote([{ findingsTotal: 2, findings: [1] }]), '1 more finding is on the pull requests.');
-  assert.match(partialNote([], { routes: 200 }), /newest 200 routes/);
+  assert.match(partialNote([], { routes: 200 }), /200 newest results/);
 });
