@@ -142,20 +142,24 @@ async function commentIssue(plan, target) {
   return target;
 }
 
+async function tellTeams(issueKey, dueValue) {
+  const due = dueDate(dueValue);
+  const { told, plans } = await tellPlans(issueKey);
+  const created = [];
+  for (const plan of plans) {
+    const key = plan.action.mode === 'comment' ? await commentIssue(plan, plan.action.target) : await fileIssue(plan, issueKey, due);
+    told[plan.owner] = key;
+    created.push({ owner: plan.owner, key, mode: plan.action.mode });
+    await storage.set(`told:${issueKey}`, told);
+  }
+  return { created, told };
+}
+
 resolver.define('tellConsumers', async (req) => {
   const issue = req.context?.extension?.issue;
   if (!issue?.key) return { error: { message: 'Open an issue first.' } };
   try {
-    const due = dueDate(req.payload?.dueDate);
-    const { told, plans } = await tellPlans(issue.key);
-    const created = [];
-    for (const plan of plans) {
-      const key = plan.action.mode === 'comment' ? await commentIssue(plan, plan.action.target) : await fileIssue(plan, issue.key, due);
-      told[plan.owner] = key;
-      created.push({ owner: plan.owner, key, mode: plan.action.mode });
-      await storage.set(`told:${issue.key}`, told);
-    }
-    return { created, told };
+    return await tellTeams(issue.key, req.payload?.dueDate);
   } catch (err) {
     if (err instanceof LayerError) return failure(err);
     console.error(err);
@@ -333,3 +337,29 @@ export const getIssueChanges = asText(async (payload) => {
   const entries = blastRadius((await client().changesForIssue(issueKey)).changes);
   return `${summarize(entries)}\n${changesText(entries)}`;
 });
+
+// Rovo write action. Rovo asks the person to confirm before it runs, because
+// its verb is CREATE; the agent prompt also asks first and shows the plan.
+export const tellConsumersAction = async (payload) => {
+  const issueKey = String(payload.issueKey || payload.context?.jira?.issueKey || '').toUpperCase();
+  if (!issueKey) return 'Give the Jira issue key whose consumers should be told, such as FERN-1.';
+  try {
+    const { created, told } = await tellTeams(issueKey, payload.dueDate);
+    const base = await jira(route`/rest/api/3/serverInfo`).then((i) => i.baseUrl || '', () => '');
+    const link = (k) => (base ? `[${k}](${base}/browse/${k})` : k);
+    if (!created.length) {
+      const before = Object.entries(told);
+      return before.length
+        ? `Every affected team was already told about ${issueKey}: ${before.map(([o, k]) => `${o} in ${link(k)}`).join(', ')}.`
+        : `No team needs to be told: nothing in ${issueKey}'s pull requests breaks another repository.`;
+    }
+    return [
+      `Told ${created.length} team${created.length === 1 ? '' : 's'} about ${issueKey}:`,
+      ...created.map((c) => `- ${c.owner}: ${c.mode === 'comment' ? 'commented on' : 'filed'} ${link(c.key)}`),
+    ].join('\n');
+  } catch (err) {
+    if (err instanceof LayerError) return `Layer error: ${failure(err).error.message}`;
+    console.error(err);
+    return `Jira error: ${String(err.message || err).slice(0, 300)}`;
+  }
+};

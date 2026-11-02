@@ -150,3 +150,14 @@ test('incoming changes for "my team" use the project mapping', async () => {
   assert.match(await app.getIncomingChanges({ project: 'OPS' }), /No code owner teams are mapped to Jira project OPS/);
   assert.match(await app.getIncomingChanges({}), /Jira project key/);
 });
+
+test('the Rovo tell action files issues and links them on the site', async () => {
+  jiraRoutes['POST /rest/api/3/search/jql'] = () => [200, { issues: [] }];
+  jiraRoutes['POST /rest/api/3/issueLink'] = () => [201];
+  jiraRoutes['POST /rest/api/3/issue'] = () => [201, { key: 'FERN-9' }];
+  jiraRoutes['GET /rest/api/3/serverInfo'] = () => [200, { baseUrl: 'https://x.atlassian.net' }];
+  const text = await app.tellConsumersAction({ issueKey: 'fern-1' });
+  assert.equal(text, 'Told 1 team about FERN-1:\n- @fernway-test/dispatch: filed [FERN-9](https://x.atlassian.net/browse/FERN-9)');
+  assert.match(await app.tellConsumersAction({ issueKey: 'FERN-1' }), /already told about FERN-1: @fernway-test\/dispatch in \[FERN-9\]/);
+  assert.match(await app.tellConsumersAction({}), /Give the Jira issue key/);
+});

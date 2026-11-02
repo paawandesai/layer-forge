@@ -48,6 +48,7 @@ modules:
         - get-contract-consumers
         - get-incoming-changes
         - get-issue-blast-radius
+        - tell-consumers
   rovo:mcp:
     - key: layer-mcp
       name: Layer for Jira
@@ -110,6 +111,25 @@ modules:
           type: string
           required: false
           description: A Jira issue key such as JOBS-12. Defaults to the issue being viewed.
+    - key: tell-consumers
+      name: Tell the affected teams
+      function: tellConsumers
+      actionVerb: CREATE
+      description: Only after the user has seen the blast radius and agreed, file one
+        linked Jira issue for each team whose repository will break because of a
+        Jira issue's pull requests, or comment on the open issue Layer already
+        filed for that team.
+      inputs:
+        issueKey:
+          title: Issue key
+          type: string
+          required: true
+          description: The Jira issue whose code changes break other teams, such as FERN-1.
+        dueDate:
+          title: Due date
+          type: string
+          required: false
+          description: Optional due date for the new issues, as YYYY-MM-DD.
   function:
     - key: resolver
       handler: index.handler
@@ -117,6 +137,8 @@ modules:
       handler: index.getConsumers
     - key: incoming
       handler: index.getIncomingChanges
+    - key: tellConsumers
+      handler: index.tellConsumersAction
     - key: issueChanges
       handler: index.getIssueChanges
 resources:
