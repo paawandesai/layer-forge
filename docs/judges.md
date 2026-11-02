@@ -1,0 +1,42 @@
+# Trying Layer for Jira (judges)
+
+This takes about 5 minutes and needs no accounts or tokens. The app comes connected to Layer's demo data for **Fernway**, a fictional field-service company with 12 repositories and open pull requests.
+
+## 1. Install
+
+1. Open the installation link from the submission.
+2. Choose your Jira Cloud site and press **Install**. Accept the permissions: read and write Jira issues, store app settings, and call layer-api.fly.dev.
+
+## 2. Load the demo (Jira admin)
+
+1. In Jira, open **Settings** (the gear, top right), then **Apps**, then **Layer for Jira** in the left sidebar.
+2. Under **Get started**, step 1 should say **Connected to Layer**.
+3. Press **Load the Fernway demo**. It creates the project **Fernway Jobs (FERN)** with issues FERN-1 to FERN-6, which match the Fernway pull requests, and maps the Fernway teams to it.
+   - If your site already has a project with the key FERN, the app says so and changes nothing. Use a site without one.
+4. Step 3 now links **FERN-1**.
+
+## 3. See the blast radius
+
+1. Open **FERN-1, Store technician IDs as integers**.
+2. In the issue's right-hand details, open **Layer: Blast radius**. It shows the breaking change to `jobs-api` and the teams it reaches: who **will break**, who should **watch on upgrade**, and why.
+3. Press **Tell N teams**. Check the preview, pick a due date if you like, and confirm. Linked tasks appear in FERN, one per affected team. Open one: it points back to FERN-1.
+4. Other issues to try: FERN-2 (rename a billing field), FERN-4 (remove an endpoint) and FERN-6 (a database change).
+5. Open **FERN**, then **Incoming changes** in the project sidebar, to see changes grouped by team.
+
+## 4. Ask Rovo (sites with Rovo)
+
+1. Open Rovo chat and pick **Contract Steward** under agents.
+2. Try these questions:
+   - "What does FERN-1 break?"
+   - "Who uses jobs-api in fernway-test/jobs-api?"
+   - "What contract changes are coming to the APIs my team calls?" (ask this from a FERN issue)
+   - "Tell the affected teams about FERN-2." Rovo asks you to confirm before it files anything.
+3. In Rovo Studio, you can add the **Layer for Jira** tools and the **layer-contract-check** skill to any agent.
+
+## If something looks wrong
+
+- **"Layer is not answering":** the demo server is waking up. Press **Try again** after a few seconds.
+- **No Blast radius in the sidebar:** reload the issue. It is also under the issue's **Apps** button.
+- **"No contract changes" on FERN-1:** the demo was loaded into a project whose keys do not match. Load it on a site without an existing FERN project.
+
+The demo data is read-only and shared by everyone trying the app. Your site sends Layer nothing except issue keys and the names you ask about.
