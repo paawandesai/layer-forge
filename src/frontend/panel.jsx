@@ -74,6 +74,7 @@ function TellConsumers({ teams, told: initialTold }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [plans, setPlans] = useState(null);
+  const [note, setNote] = useState(null);
   const pending = teams.filter((t) => !told[t]);
 
   const preview = async () => {
@@ -82,6 +83,11 @@ function TellConsumers({ teams, told: initialTold }) {
     const res = await invoke('previewTell').catch((e) => ({ error: { message: String(e) } }));
     if (res.error) setError(res.error.message);
     else if (res.plans.length) setPlans(res.plans);
+    else {
+      // Told from elsewhere meanwhile (Rovo or automation): show who and where.
+      setTold(res.told || told);
+      setNote('Every team was already told. Their issues are listed below.');
+    }
     setBusy(false);
   };
 
@@ -113,6 +119,7 @@ function TellConsumers({ teams, told: initialTold }) {
           <Link href={`/browse/${key}`}>{key}</Link>
         </Inline>
       ))}
+      {note ? <Text size="small">{note}</Text> : null}
       {error ? (
         <SectionMessage title="Could not tell every team" appearance="error">
           <Text>{error}</Text>
