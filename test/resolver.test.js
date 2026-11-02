@@ -179,3 +179,11 @@ test('Teamwork Graph connection stores the id, syncs services, and forgets on de
   await app.refreshGraph();
   assert.equal(graphCalls.length, 2);
 });
+
+test('getOverview summarizes breaking changes across teams', async () => {
+  const out = await call('getOverview', { moduleKey: 'app:layer-risk-gadget' });
+  assert.equal(out.breaking, 1);
+  assert.equal(out.demo, true);
+  assert.deepEqual(out.rows[0].waiting, ['@fernway-test/dispatch']);
+  assert.equal(out.rows[0].issue, 'FERN-1');
+});
