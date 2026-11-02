@@ -32,9 +32,13 @@ mock.module('@forge/api', {
     }),
   },
 });
+const graphCalls = [];
+mock.module('@forge/teamwork-graph', {
+  namedExports: { graph: { setObjects: async (req) => (graphCalls.push(req), { success: true }) } },
+});
 mock.module('@forge/kvs', {
   namedExports: {
-    kvs: { get: async (k) => store.get(k), set: async (k, v) => void store.set(k, v) },
+    kvs: { get: async (k) => store.get(k), set: async (k, v) => void store.set(k, v), delete: async (k) => void store.delete(k) },
   },
 });
 
@@ -160,4 +164,18 @@ test('the Rovo tell action files issues and links them on the site', async () =>
   assert.equal(text, 'Told 1 team about FERN-1:\n- @fernway-test/dispatch: filed [FERN-9](https://x.atlassian.net/browse/FERN-9)');
   assert.match(await app.tellConsumersAction({ issueKey: 'FERN-1' }), /already told about FERN-1: @fernway-test\/dispatch in \[FERN-9\]/);
   assert.match(await app.tellConsumersAction({}), /Give the Jira issue key/);
+});
+
+test('Teamwork Graph connection stores the id, syncs services, and forgets on delete', async () => {
+  graphCalls.length = 0;
+  assert.deepEqual(await app.onGraphConnectionChange({ action: 'CREATED', connectionId: 'conn-1' }), { success: true });
+  assert.equal(store.get('graph:connection').connectionId, 'conn-1');
+  assert.equal(graphCalls[0].connectionId, 'conn-1');
+  assert.deepEqual(graphCalls[0].objects.map((o) => o.id), ['layer:fernway-test/dispatch', 'layer:fernway-test/jobs-api']);
+  await app.refreshGraph();
+  assert.equal(graphCalls.length, 2);
+  await app.onGraphConnectionChange({ action: 'DELETED', connectionId: 'conn-1' });
+  assert.equal(store.get('graph:connection'), undefined);
+  await app.refreshGraph();
+  assert.equal(graphCalls.length, 2);
 });
