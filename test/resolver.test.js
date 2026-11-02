@@ -187,3 +187,11 @@ test('getOverview summarizes breaking changes across teams', async () => {
   assert.deepEqual(out.rows[0].waiting, ['@fernway-test/dispatch']);
   assert.equal(out.rows[0].issue, 'FERN-1');
 });
+
+test('automation action comments when something will break', async () => {
+  jiraRoutes['POST /rest/api/3/issue/FERN-1/comment'] = () => [201, {}];
+  const out = await app.automationCheck({ issueKey: 'FERN-1' });
+  assert.deepEqual(out, { commented: true, told: 0 });
+  assert.ok(jiraCalls.some((c) => c.path === '/rest/api/3/issue/FERN-1/comment'));
+  assert.match((await app.automationCheck({ issueKey: '{{issue.key}}' })).errors[0].message, /Not an issue key/);
+});

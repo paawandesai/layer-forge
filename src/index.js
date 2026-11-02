@@ -7,6 +7,7 @@ import { adfLines, chooseAction, dueDate, filedFor, parseTeamProjects, planConsu
 import { DEMO_PROJECT, DEMO_TEAMS, isDemoData, demoFailure, demoKeys, demoReport, demoTeamProjects, pickIssueType, planDemo } from './lib/demo.js';
 import { setupSteps } from './lib/setup.js';
 import { riskOverview } from './lib/overview.js';
+import { automationConfig, blastComment } from './lib/automation.js';
 import { graph } from '@forge/teamwork-graph';
 import { graphObjects } from './lib/graph.js';
 
@@ -435,5 +436,22 @@ export const refreshGraph = async () => {
     console.log(`Teamwork Graph: refreshed ${await syncGraph(conn.connectionId)} services`);
   } catch (err) {
     console.error('Teamwork Graph refresh failed', err);
+  }
+};
+
+// Jira automation action: check the blast radius, comment when something will
+// break, and optionally tell the affected teams.
+export const automationCheck = async (payload) => {
+  const { issueKey, tell } = automationConfig(payload);
+  if (!/^[A-Z][A-Z0-9_]+-\d+$/.test(issueKey)) return { errors: [{ message: `Not an issue key: "${issueKey}". Use {{issue.key}}.` }] };
+  try {
+    const entries = blastRadius((await client().changesForIssue(issueKey)).changes);
+    const told = tell ? (await tellTeams(issueKey)).created : [];
+    const body = blastComment(entries, told);
+    if (body) await jira(route`/rest/api/3/issue/${issueKey}/comment`, { body });
+    return { commented: !!body, told: told.length };
+  } catch (err) {
+    console.error(err);
+    return { errors: [{ message: err instanceof LayerError ? failure(err).error.message : `Jira error: ${String(err.message || err).slice(0, 200)}` }] };
   }
 };
