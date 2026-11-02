@@ -10,6 +10,17 @@ const CLASS_LOZENGE = {
   compatible: { appearance: 'success', label: 'Compatible' },
 };
 
+export function DemoLabel() {
+  return (
+    <Inline space="space.100" alignBlock="center" shouldWrap>
+      <Lozenge appearance="new">Demo data: Fernway</Lozenge>
+      <Text size="small" color="color.text.subtle">
+        A fictional company used to show the app.
+      </Text>
+    </Inline>
+  );
+}
+
 export function Loading({ label }) {
   return (
     <Inline space="space.100" alignBlock="center">

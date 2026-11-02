@@ -47,3 +47,11 @@ test('demo failures and reports read plainly', () => {
   );
   assert.equal(demoReport({ kept: ['FERN-1'] }), 'FERN-1 was already there.');
 });
+
+import { isDemoData } from '../src/lib/demo.js';
+
+test('isDemoData recognizes Fernway results only', () => {
+  assert.equal(isDemoData([{ producer: 'fernway-test/jobs-api' }]), true);
+  assert.equal(isDemoData([{ producer: 'fernway-test/jobs-api' }, { producer: 'acme/orders' }]), false);
+  assert.equal(isDemoData([]), false);
+});

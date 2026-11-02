@@ -19,7 +19,8 @@ import ForgeReconciler, {
   Text,
 } from '@forge/react';
 import { invoke } from '@forge/bridge';
-import { ChangeCard, ErrorState, Loading } from './components.jsx';
+import { ChangeCard, DemoLabel, ErrorState, Loading } from './components.jsx';
+import { isDemoData } from '../lib/demo.js';
 import { emptyView, partialNote } from '../lib/states.js';
 
 function Preview({ plans, onClose, onConfirm, busy }) {
@@ -154,6 +155,7 @@ function App() {
   const partial = partialNote(state.entries, { routes: state.routes });
   return (
     <Stack space="space.200">
+      {isDemoData(state.entries) ? <DemoLabel /> : null}
       <Heading size="small">{state.summary}</Heading>
       {partial ? <Text size="small" color="color.text.subtle">{partial}</Text> : null}
       {state.teamsToTell.length || Object.keys(state.told).length ? <TellConsumers teams={state.teamsToTell} told={state.told} /> : null}
