@@ -111,8 +111,9 @@ resolver.define('previewTell', async (req) => {
   const issue = req.context?.extension?.issue;
   if (!issue?.key) return { error: { message: 'Open an issue first.' } };
   try {
-    const { plans } = await tellPlans(issue.key);
+    const { plans, told } = await tellPlans(issue.key);
     return {
+      told,
       plans: plans.map((p) => ({ owner: p.owner, project: p.project, summary: p.summary, lines: adfLines(p.description), action: p.action })),
     };
   } catch (err) {
@@ -120,10 +121,19 @@ resolver.define('previewTell', async (req) => {
   }
 });
 
-async function fileIssue(plan, sourceKey, due) {
+// Team projects differ: use Task when the project has it, else its closest type.
+async function issueTypeFor(projectKey, cache) {
+  if (!cache.has(projectKey)) {
+    const meta = await jira(route`/rest/api/3/issue/createmeta/${projectKey}/issuetypes`).catch(() => null);
+    cache.set(projectKey, pickIssueType(meta?.issueTypes || meta?.values || []) || 'Task');
+  }
+  return cache.get(projectKey);
+}
+
+async function fileIssue(plan, sourceKey, due, types = new Map()) {
   const fields = {
     project: { key: plan.project },
-    issuetype: { name: 'Task' },
+    issuetype: { name: await issueTypeFor(plan.project, types) },
     summary: plan.summary,
     description: plan.description,
     labels: ['layer-consumer'],
@@ -150,8 +160,9 @@ async function tellTeams(issueKey, dueValue) {
   const due = dueDate(dueValue);
   const { told, plans } = await tellPlans(issueKey);
   const created = [];
+  const types = new Map();
   for (const plan of plans) {
-    const key = plan.action.mode === 'comment' ? await commentIssue(plan, plan.action.target) : await fileIssue(plan, issueKey, due);
+    const key = plan.action.mode === 'comment' ? await commentIssue(plan, plan.action.target) : await fileIssue(plan, issueKey, due, types);
     told[plan.owner] = key;
     created.push({ owner: plan.owner, key, mode: plan.action.mode });
     await storage.set(`told:${issueKey}`, told);

@@ -125,6 +125,19 @@ test('tellConsumers files once, links it, then comments instead of duplicating',
   assert.deepEqual(again.created, [{ owner: '@fernway-test/dispatch', key: 'FERN-9', mode: 'comment' }]);
 });
 
+test('tell uses the team project\'s own issue type and reports earlier hand-offs', async () => {
+  jiraRoutes['POST /rest/api/3/search/jql'] = () => [200, { issues: [] }];
+  jiraRoutes['GET /rest/api/3/issue/createmeta/FERN/issuetypes'] = () => [200, { issueTypes: [{ name: 'Epic' }, { name: 'Story' }, { name: 'Sub-task', subtask: true }] }];
+  jiraRoutes['POST /rest/api/3/issueLink'] = () => [201];
+  jiraRoutes['POST /rest/api/3/issue'] = () => [201, { key: 'FERN-9' }];
+  await call('tellConsumers', { issue: { key: 'FERN-1' } });
+  const created = jiraCalls.find((c) => c.method === 'POST' && c.path === '/rest/api/3/issue');
+  assert.equal(created.body.fields.issuetype.name, 'Story');
+  const preview = await call('previewTell', { issue: { key: 'FERN-1' } });
+  assert.deepEqual(preview.plans, []);
+  assert.deepEqual(preview.told, { '@fernway-test/dispatch': 'FERN-9' });
+});
+
 test('admin-only resolvers refuse other modules', async () => {
   assert.match((await call('loadDemo')).error.message, /admin page/);
   assert.match((await call('saveSettings', { payload: { teamProjects: 'x' } })).error.message, /admin page/);
