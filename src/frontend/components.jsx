@@ -47,6 +47,13 @@ export function ChangeCard({ entry }) {
         <Lozenge appearance={cls.appearance}>{cls.label}</Lozenge>
       </Inline>
       {url ? <Link href={url} openNewTab>{`${entry.producer} #${entry.pr}`}</Link> : <Text>{entry.producer}</Text>}
+      {entry.issue && entry.issueSummary !== null && entry.issueSummary !== undefined ? (
+        <Text size="small">
+          {'Jira issue '}
+          <Link href={`/browse/${entry.issue}`}>{entry.issue}</Link>
+          {entry.issueSummary ? `: ${entry.issueSummary}` : ''}
+        </Text>
+      ) : null}
       {groups.slice(0, 3).map((g, i) => (
         <Stack key={i} space="space.050">
           <Text>{g.text}</Text>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import ForgeReconciler, { Heading, SectionMessage, Stack, Text } from '@forge/react';
+import ForgeReconciler, { Heading, Inline, Lozenge, SectionMessage, Stack, Text } from '@forge/react';
 import { invoke } from '@forge/bridge';
 import { ChangeCard, ErrorState, Loading } from './components.jsx';
 
@@ -20,18 +20,36 @@ function App() {
       </SectionMessage>
     );
   }
-  const breaking = state.entries.filter((e) => e.class === 'breaking').length;
+  const total = state.entries.length;
   return (
-    <Stack space="space.200">
-      <Heading size="medium">Incoming contract changes</Heading>
-      <Text>
-        {state.entries.length
-          ? `${state.entries.length} change${state.entries.length === 1 ? '' : 's'} to contracts that ${state.teams.join(', ')} depend on, ${breaking} breaking.`
-          : `Nothing is changing in the contracts ${state.teams.join(', ')} depend on.`}
-      </Text>
-      {state.entries.map((e) => (
-        <ChangeCard key={e.id} entry={e} />
-      ))}
+    <Stack space="space.300">
+      <Stack space="space.100">
+        <Heading size="medium">Incoming contract changes</Heading>
+        <Text>
+          {total
+            ? `${total} change${total === 1 ? '' : 's'} in flight or recently merged to contracts this project's teams use.`
+            : `Nothing is changing in the contracts ${state.teams.join(', ')} use.`}
+        </Text>
+      </Stack>
+      {state.groups
+        .filter((g) => g.changes.length)
+        .map((g) => (
+          <Stack key={g.team} space="space.150">
+            <Inline space="space.100" alignBlock="center" shouldWrap>
+              <Heading size="small">{g.team}</Heading>
+              {g.breaking ? <Lozenge appearance="removed">{`${g.breaking} will break`}</Lozenge> : null}
+            </Inline>
+            <Text size="small" color="color.text.subtle">{g.summary}</Text>
+            {g.changes.map((e) => (
+              <ChangeCard key={`${g.team}-${e.id}`} entry={e} />
+            ))}
+          </Stack>
+        ))}
+      {state.groups.some((g) => !g.changes.length) && total ? (
+        <Text size="small" color="color.text.subtle">
+          {`Nothing incoming for ${state.groups.filter((g) => !g.changes.length).map((g) => g.team).join(', ')}.`}
+        </Text>
+      ) : null}
     </Stack>
   );
 }
