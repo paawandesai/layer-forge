@@ -1,21 +1,95 @@
 import React, { useEffect, useState } from 'react';
-import ForgeReconciler, { Button, Heading, Inline, Link, Lozenge, SectionMessage, Stack, Text } from '@forge/react';
+import ForgeReconciler, {
+  Button,
+  DatePicker,
+  Heading,
+  Inline,
+  Label,
+  Link,
+  Lozenge,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  ModalTitle,
+  ModalTransition,
+  SectionMessage,
+  Stack,
+  Strong,
+  Text,
+} from '@forge/react';
 import { invoke } from '@forge/bridge';
 import { ChangeCard, ErrorState, Loading } from './components.jsx';
 import { emptyView, partialNote } from '../lib/states.js';
+
+function Preview({ plans, onClose, onConfirm, busy }) {
+  const [due, setDue] = useState('');
+  const files = plans.filter((p) => p.action.mode === 'create').length;
+  const comments = plans.length - files;
+  const label = [files ? `File ${files} issue${files === 1 ? '' : 's'}` : '', comments ? `comment on ${comments}` : ''].filter(Boolean).join(' and ');
+  return (
+    <Modal onClose={onClose}>
+      <ModalHeader>
+        <ModalTitle>Tell the teams whose code will break</ModalTitle>
+      </ModalHeader>
+      <ModalBody>
+        <Stack space="space.200">
+          {plans.map((p) => (
+            <Stack key={p.owner} space="space.050">
+              <Inline space="space.100" alignBlock="center" shouldWrap>
+                <Strong>{p.owner}</Strong>
+                <Lozenge>{p.action.mode === 'comment' ? `Comment on ${p.action.target}` : `New issue in ${p.project}`}</Lozenge>
+              </Inline>
+              <Text>{p.summary}</Text>
+              {p.lines.slice(0, 6).map((l, i) => (
+                <Text key={i} size="small" color="color.text.subtle">
+                  {l}
+                </Text>
+              ))}
+            </Stack>
+          ))}
+          {files ? (
+            <Stack space="space.050">
+              <Label labelFor="layer-due">Due date for new issues (optional)</Label>
+              <DatePicker id="layer-due" value={due} onChange={(v) => setDue(v || '')} />
+            </Stack>
+          ) : null}
+        </Stack>
+      </ModalBody>
+      <ModalFooter>
+        <Button appearance="subtle" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button appearance="primary" isDisabled={busy} onClick={() => onConfirm(due)}>
+          {busy ? 'Filing' : label.charAt(0).toUpperCase() + label.slice(1)}
+        </Button>
+      </ModalFooter>
+    </Modal>
+  );
+}
 
 function TellConsumers({ teams, told: initialTold }) {
   const [told, setTold] = useState(initialTold || {});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [plans, setPlans] = useState(null);
   const pending = teams.filter((t) => !told[t]);
 
-  const tell = async () => {
+  const preview = async () => {
     setBusy(true);
     setError(null);
-    const res = await invoke('tellConsumers').catch((e) => ({ error: { message: String(e) } }));
+    const res = await invoke('previewTell').catch((e) => ({ error: { message: String(e) } }));
+    if (res.error) setError(res.error.message);
+    else if (res.plans.length) setPlans(res.plans);
+    setBusy(false);
+  };
+
+  const tell = async (dueDate) => {
+    setBusy(true);
+    const res = await invoke('tellConsumers', { dueDate }).catch((e) => ({ error: { message: String(e) } }));
     if (res.error) setError(res.error.message);
     else setTold(res.told);
+    setPlans(null);
     setBusy(false);
   };
 
@@ -23,24 +97,27 @@ function TellConsumers({ teams, told: initialTold }) {
     <Stack space="space.100">
       {pending.length ? (
         <Stack space="space.050">
-          <Button appearance="primary" isDisabled={busy} onClick={tell}>
-            {busy ? 'Filing issues' : `Tell ${pending.length} team${pending.length === 1 ? '' : 's'}`}
-          </Button>
-          <Text size="small">{`Files a linked issue for ${pending.join(', ')}.`}</Text>
+          <Inline>
+            <Button appearance="primary" isDisabled={busy} onClick={preview}>
+              {busy && !plans ? 'Preparing' : `Tell ${pending.length} team${pending.length === 1 ? '' : 's'}`}
+            </Button>
+          </Inline>
+          <Text size="small">{`Shows the issue for ${pending.join(', ')} before filing it.`}</Text>
         </Stack>
       ) : null}
       {Object.entries(told).map(([owner, key]) => (
-        <Inline key={owner} space="space.100">
+        <Inline key={owner} space="space.100" alignBlock="center" shouldWrap>
           <Lozenge appearance="success">Told</Lozenge>
           <Text>{owner}</Text>
           <Link href={`/browse/${key}`}>{key}</Link>
         </Inline>
       ))}
       {error ? (
-        <SectionMessage title="Could not file every issue" appearance="error">
+        <SectionMessage title="Could not tell every team" appearance="error">
           <Text>{error}</Text>
         </SectionMessage>
       ) : null}
+      <ModalTransition>{plans ? <Preview plans={plans} busy={busy} onClose={() => setPlans(null)} onConfirm={tell} /> : null}</ModalTransition>
     </Stack>
   );
 }

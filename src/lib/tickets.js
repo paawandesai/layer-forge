@@ -49,6 +49,7 @@ export function planConsumerIssues({ issueKey, entries, teamProjects = {}, defau
     }
     return {
       owner,
+      repos,
       project: teamProjects[owner.toLowerCase()] || defaultProject,
       summary: `Prepare ${repos.join(', ')} for ${contracts.join(', ')} changes in ${issueKey}`.slice(0, 250),
       description: { type: 'doc', version: 1, content: body },
@@ -73,4 +74,31 @@ export function filedFor(issue) {
     if (link.type?.name === 'Relates' && other?.key) return other.key;
   }
   return null;
+}
+
+// Plain-text lines of an issue description, for the preview before filing.
+export function adfLines(doc) {
+  const out = [];
+  const walk = (node, prefix) => {
+    if (!node) return;
+    if (node.type === 'paragraph') out.push(prefix + (node.content || []).map((t) => t.text || '').join(''));
+    else if (node.type === 'listItem') (node.content || []).forEach((c) => walk(c, '• '));
+    else (node.content || []).forEach((c) => walk(c, prefix));
+  };
+  walk(doc, '');
+  return out.filter(Boolean);
+}
+
+// Decides per team whether to file a new issue or comment on an open one
+// Layer filed earlier for the same issue (for example after a reinstall
+// cleared the app's memory). openIssues: [{ key, project, summary }].
+export function chooseAction(plan, openIssues = []) {
+  const match = openIssues.find((i) => i.project === plan.project && plan.repos.some((r) => i.summary.includes(r)));
+  return match ? { mode: 'comment', target: match.key } : { mode: 'create' };
+}
+
+// A due date the admin picked, as Jira's yyyy-mm-dd, or null.
+export function dueDate(value, today = new Date()) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  return value >= today.toISOString().slice(0, 10) ? value : null;
 }

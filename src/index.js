@@ -3,7 +3,7 @@ import { asUser, fetch, route } from '@forge/api';
 import { kvs as storage } from '@forge/kvs';
 import { createClient, layerConfig, LayerError } from './lib/layer.js';
 import { blastRadius, summarize, consumersText, changesText, groupIncoming } from './lib/format.js';
-import { filedFor, parseTeamProjects, planConsumerIssues, teamsForProject } from './lib/tickets.js';
+import { adfLines, chooseAction, dueDate, filedFor, parseTeamProjects, planConsumerIssues, teamsForProject } from './lib/tickets.js';
 import { DEMO_PROJECT, demoFailure, demoKeys, demoReport, demoTeamProjects, pickIssueType, planDemo } from './lib/demo.js';
 import { setupSteps } from './lib/setup.js';
 
@@ -81,41 +81,79 @@ async function jira(path, body, { method = body ? 'POST' : 'GET', allow404 = fal
 }
 
 // "Tell the consumers": one linked issue per team whose repository will break.
-// Already-filed teams are remembered per issue, so a second click adds only new ones.
+// Already-told teams are remembered per issue, and an open issue Layer filed
+// earlier for the same team gets a comment instead of a duplicate.
+async function tellPlans(issueKey) {
+  const entries = blastRadius((await client().changesForIssue(issueKey)).changes);
+  const plans = planConsumerIssues({
+    issueKey,
+    entries,
+    teamProjects: parseTeamProjects((await settings()).teamProjects),
+    defaultProject: issueKey.split('-')[0],
+  });
+  const told = (await storage.get(`told:${issueKey}`)) || {};
+  const open = await jira(route`/rest/api/3/search/jql`, {
+    jql: `issue in linkedIssues("${issueKey}") AND labels = layer-consumer AND statusCategory != Done`,
+    fields: ['summary', 'project'],
+    maxResults: 50,
+  }).then(
+    (r) => (r.issues || []).map((i) => ({ key: i.key, project: i.fields?.project?.key, summary: i.fields?.summary || '' })),
+    () => [],
+  );
+  return { told, plans: plans.filter((p) => !told[p.owner]).map((p) => ({ ...p, action: chooseAction(p, open) })) };
+}
+
+resolver.define('previewTell', async (req) => {
+  const issue = req.context?.extension?.issue;
+  if (!issue?.key) return { error: { message: 'Open an issue first.' } };
+  try {
+    const { plans } = await tellPlans(issue.key);
+    return {
+      plans: plans.map((p) => ({ owner: p.owner, project: p.project, summary: p.summary, lines: adfLines(p.description), action: p.action })),
+    };
+  } catch (err) {
+    return failure(err);
+  }
+});
+
+async function fileIssue(plan, sourceKey, due) {
+  const fields = {
+    project: { key: plan.project },
+    issuetype: { name: 'Task' },
+    summary: plan.summary,
+    description: plan.description,
+    labels: ['layer-consumer'],
+  };
+  let made;
+  try {
+    made = await jira(route`/rest/api/3/issue`, { fields: due ? { ...fields, duedate: due } : fields });
+  } catch (err) {
+    // Some projects leave the due date off their create screen.
+    if (!(due && err.status === 400 && /duedate/i.test(err.body || ''))) throw err;
+    made = await jira(route`/rest/api/3/issue`, { fields });
+  }
+  await jira(route`/rest/api/3/issueLink`, { type: { name: 'Relates' }, inwardIssue: { key: made.key }, outwardIssue: { key: sourceKey } });
+  return made.key;
+}
+
+async function commentIssue(plan, target) {
+  const note = { type: 'paragraph', content: [{ type: 'text', text: 'Layer update: the change this issue tracks still affects your repositories.' }] };
+  await jira(route`/rest/api/3/issue/${target}/comment`, { body: { ...plan.description, content: [note, ...plan.description.content] } });
+  return target;
+}
+
 resolver.define('tellConsumers', async (req) => {
   const issue = req.context?.extension?.issue;
   if (!issue?.key) return { error: { message: 'Open an issue first.' } };
   try {
-    const entries = blastRadius((await client().changesForIssue(issue.key)).changes);
-    const defaultProject = issue.key.split('-')[0];
-    const plans = planConsumerIssues({
-      issueKey: issue.key,
-      entries,
-      teamProjects: parseTeamProjects((await settings()).teamProjects),
-      defaultProject,
-    });
-    const toldKey = `told:${issue.key}`;
-    const told = (await storage.get(toldKey)) || {};
+    const due = dueDate(req.payload?.dueDate);
+    const { told, plans } = await tellPlans(issue.key);
     const created = [];
     for (const plan of plans) {
-      if (told[plan.owner]) continue;
-      const made = await jira(route`/rest/api/3/issue`, {
-        fields: {
-          project: { key: plan.project },
-          issuetype: { name: 'Task' },
-          summary: plan.summary,
-          description: plan.description,
-          labels: ['layer-consumer'],
-        },
-      });
-      await jira(route`/rest/api/3/issueLink`, {
-        type: { name: 'Relates' },
-        inwardIssue: { key: made.key },
-        outwardIssue: { key: issue.key },
-      });
-      told[plan.owner] = made.key;
-      created.push({ owner: plan.owner, key: made.key });
-      await storage.set(toldKey, told);
+      const key = plan.action.mode === 'comment' ? await commentIssue(plan, plan.action.target) : await fileIssue(plan, issue.key, due);
+      told[plan.owner] = key;
+      created.push({ owner: plan.owner, key, mode: plan.action.mode });
+      await storage.set(`told:${issue.key}`, told);
     }
     return { created, told };
   } catch (err) {
