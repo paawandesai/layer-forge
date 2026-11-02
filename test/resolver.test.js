@@ -165,6 +165,9 @@ test('incoming changes for "my team" use the project mapping', async () => {
   assert.match(text, /^@fernway-test\/dispatch \(mapped to FERN\):/);
   assert.match(text, /jobs-api in \[fernway-test\/jobs-api #296\]/);
   assert.match(await app.getIncomingChanges({ project: 'OPS' }), /No code owner teams are mapped to Jira project OPS/);
+  // With no saved mapping, the Fernway demo teams map to FERN.
+  store.clear();
+  assert.match(await app.getIncomingChanges({ context: { jira: { projectKey: 'FERN' } } }), /^@fernway-test\/[a-z-]+ \(mapped to FERN\):/);
   assert.match(await app.getIncomingChanges({}), /Jira project key/);
 });
 
