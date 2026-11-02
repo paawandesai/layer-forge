@@ -4,7 +4,7 @@ import { kvs as storage } from '@forge/kvs';
 import { createClient, layerConfig, LayerError } from './lib/layer.js';
 import { blastRadius, summarize, consumersText, changesText } from './lib/format.js';
 import { filedFor, parseTeamProjects, planConsumerIssues, teamsForProject } from './lib/tickets.js';
-import { DEMO_ISSUES, DEMO_PROJECT, demoKeys, demoTeamProjects } from './lib/demo.js';
+import { DEMO_PROJECT, demoFailure, demoKeys, demoReport, demoTeamProjects, pickIssueType, planDemo } from './lib/demo.js';
 import { setupSteps } from './lib/setup.js';
 
 const client = () => createClient({ ...layerConfig(), fetch });
@@ -71,7 +71,12 @@ async function jira(path, body, { method = body ? 'POST' : 'GET', allow404 = fal
   });
   if (allow404 && res.status === 404) return null;
   const text = await res.text();
-  if (!res.ok) throw new Error(`Jira answered ${res.status}: ${text.slice(0, 300)}`);
+  if (!res.ok) {
+    const err = new Error(`Jira answered ${res.status}: ${text.slice(0, 300)}`);
+    err.status = res.status;
+    err.body = text;
+    throw err;
+  }
   return text ? JSON.parse(text) : {};
 }
 
@@ -122,51 +127,68 @@ resolver.define('tellConsumers', async (req) => {
 
 // Admin page: create the FERN project with the demo issues whose keys
 // match the Fernway demo branches, and map the Fernway teams to it.
+const PROJECT_TEMPLATES = [
+  { projectTypeKey: 'software', projectTemplateKey: 'com.pyxis.greenhopper.jira:gh-simplified-kanban-classic' },
+  { projectTypeKey: 'business', projectTemplateKey: 'com.atlassian.jira-core-project-templates:jira-core-simplified-task-tracking' },
+];
+
+async function createDemoProject() {
+  const me = await jira(route`/rest/api/3/myself`);
+  let last;
+  for (const t of PROJECT_TEMPLATES) {
+    try {
+      return await jira(route`/rest/api/3/project`, {
+        key: DEMO_PROJECT.key,
+        name: DEMO_PROJECT.name,
+        leadAccountId: me.accountId,
+        assigneeType: 'UNASSIGNED',
+        ...t,
+      });
+    } catch (err) {
+      if (err.status !== 400) throw err;
+      last = err;
+    }
+  }
+  throw last;
+}
+
+const adf = (text) => ({ type: 'doc', version: 1, content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] });
+
 resolver.define('loadDemo', async (req) => {
   if (!req.context?.moduleKey?.endsWith(ADMIN_MODULE)) return { error: { message: 'The demo loads from the admin page.' } };
   try {
     let project = await jira(route`/rest/api/3/project/${DEMO_PROJECT.key}`, null, { allow404: true });
-    if (!project) {
-      const me = await jira(route`/rest/api/3/myself`);
-      project = await jira(route`/rest/api/3/project`, {
-        key: DEMO_PROJECT.key,
-        name: DEMO_PROJECT.name,
-        projectTypeKey: 'software',
-        projectTemplateKey: 'com.pyxis.greenhopper.jira:gh-simplified-kanban-classic',
-        leadAccountId: me.accountId,
-        assigneeType: 'UNASSIGNED',
-      });
-    }
+    if (!project) project = await createDemoProject();
     const found = await jira(route`/rest/api/3/search/jql`, {
       jql: `project = ${DEMO_PROJECT.key} ORDER BY key ASC`,
       fields: ['summary'],
       maxResults: 100,
     });
-    const existing = (found.issues || []).map((i) => i.key);
-    const keys = demoKeys();
-    if (existing.length && existing.join() !== keys.slice(0, existing.length).join()) {
-      return { error: { message: `Project ${DEMO_PROJECT.key} already has other issues, so the demo keys would not line up. Remove it or load the demo on a fresh site.` } };
-    }
+    const plan = planDemo({ existingKeys: (found.issues || []).map((i) => i.key) });
+    if (plan.error) return { error: { message: plan.error } };
+    const meta = await jira(route`/rest/api/3/issue/createmeta/${DEMO_PROJECT.key}/issuetypes`);
+    const issueType = pickIssueType(meta.issueTypes || meta.values || []);
+    if (!issueType) return { error: { message: `Project ${DEMO_PROJECT.key} has no issue type the demo can use.` } };
     const created = [];
-    for (const [i, issue] of DEMO_ISSUES.entries()) {
-      if (i < existing.length) continue;
+    for (const issue of plan.create) {
       const made = await jira(route`/rest/api/3/issue`, {
-        fields: {
-          project: { key: DEMO_PROJECT.key },
-          issuetype: { name: 'Task' },
-          summary: issue.summary,
-          description: { type: 'doc', version: 1, content: [{ type: 'paragraph', content: [{ type: 'text', text: issue.description }] }] },
-        },
+        fields: { project: { key: DEMO_PROJECT.key }, issuetype: { name: issueType }, summary: issue.summary, description: adf(issue.description) },
       });
-      if (made.key !== keys[i]) return { error: { message: `Expected ${keys[i]} but Jira created ${made.key}.` } };
+      if (made.key !== issue.key) {
+        // Jira skipped numbers because earlier issues were deleted; undo and explain.
+        await jira(route`/rest/api/3/issue/${made.key}`, null, { method: 'DELETE' }).catch(() => null);
+        const gap = planDemo({ existingKeys: plan.kept.concat(created), nextNumber: Number(made.key.split('-')[1]) });
+        return { error: { message: gap.error || `Expected ${issue.key} but Jira created ${made.key}.` }, created };
+      }
       created.push(made.key);
     }
     const current = await settings();
-    if (!current.teamProjects.trim()) await storage.set(SETTINGS_KEY, { teamProjects: demoTeamProjects() });
-    return { project: DEMO_PROJECT.key, created, keys };
+    const mapped = !current.teamProjects.trim();
+    if (mapped) await storage.set(SETTINGS_KEY, { teamProjects: demoTeamProjects() });
+    return { project: DEMO_PROJECT.key, created, keys: demoKeys(), report: demoReport({ created, kept: plan.kept, mapped, issueType }) };
   } catch (err) {
     console.error(err);
-    return { error: { message: String(err.message || err) } };
+    return { error: { message: err.status ? demoFailure(err.status, err.body) : String(err.message || err) } };
   }
 });
 
