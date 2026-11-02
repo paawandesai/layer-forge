@@ -57,7 +57,7 @@ export function ChangeCard({ entry }) {
         <Strong>{entry.contract}</Strong>
         <Lozenge appearance={cls.appearance}>{cls.label}</Lozenge>
         {entry.risk ? (
-          <Lozenge appearance={riskAppearance(entry.risk)} isBold={entry.risk.level <= 2}>
+          <Lozenge appearance={riskAppearance(entry.risk)} isBold={entry.risk.level >= 4}>
             {riskLabel(entry.risk)}
           </Lozenge>
         ) : null}

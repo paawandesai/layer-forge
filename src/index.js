@@ -58,6 +58,13 @@ async function settings() {
   return (await storage.get(SETTINGS_KEY)) || { teamProjects: '' };
 }
 
+// Team-to-project mapping. Until an admin saves one, the Fernway demo teams map
+// to FERN, so a site with the demo issues but no saved mapping still works.
+async function teamMap() {
+  const saved = (await settings()).teamProjects;
+  return parseTeamProjects(saved.trim() ? saved : demoTeamProjects());
+}
+
 resolver.define('getSettings', async () => settings());
 
 resolver.define('saveSettings', async (req) => {
@@ -280,7 +287,7 @@ resolver.define('getSetup', async () => {
 resolver.define('getIncoming', async (req) => {
   const projectKey = req.context?.extension?.project?.key;
   if (!projectKey) return { error: { code: 'no_project', message: 'Open a project to see its incoming changes.' } };
-  const teams = teamsForProject(parseTeamProjects((await settings()).teamProjects), projectKey);
+  const teams = teamsForProject(await teamMap(), projectKey);
   if (teams.length === 0) return { projectKey, teams, entries: [] };
   try {
     const all = [];
@@ -361,7 +368,7 @@ export const getIncomingChanges = asText(async ({ repo, owner, project, context 
   if (repo || owner) return changesText(blastRadius((await client().changes({ repo: fullRepo(repo), owner })).changes));
   const projectKey = String(project || context?.jira?.projectKey || '').toUpperCase();
   if (!projectKey) return 'Give a consuming repository (owner/name), an owner handle such as @acme/web-team, or a Jira project key.';
-  const teams = teamsForProject(parseTeamProjects((await settings()).teamProjects), projectKey);
+  const teams = teamsForProject(await teamMap(), projectKey);
   if (!teams.length) return `No code owner teams are mapped to Jira project ${projectKey}. Ask for the team's owner handle, such as @acme/web-team.`;
   const sections = [];
   for (const team of teams) {
