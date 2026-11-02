@@ -98,3 +98,9 @@ export function demoReport({ created = [], kept = [], mapped = false, issueType 
   if (!created.length && !kept.length) parts.push('Nothing to create.');
   return parts.join(' ');
 }
+
+// True when the answer comes from the shared Fernway demo data, so the UI can
+// say so. Fernway's repositories all live in the fernway-test organization.
+export function isDemoData(entries = []) {
+  return entries.length > 0 && entries.every((e) => String(e.producer || '').startsWith('fernway-test/'));
+}

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import ForgeReconciler, { Heading, Inline, Lozenge, SectionMessage, Stack, Text } from '@forge/react';
 import { invoke } from '@forge/bridge';
-import { ChangeCard, ErrorState, Loading } from './components.jsx';
+import { ChangeCard, DemoLabel, ErrorState, Loading } from './components.jsx';
+import { isDemoData } from '../lib/demo.js';
 
 function App() {
   const [state, setState] = useState(null);
@@ -25,6 +26,7 @@ function App() {
     <Stack space="space.300">
       <Stack space="space.100">
         <Heading size="medium">Incoming contract changes</Heading>
+        {isDemoData(state.entries) ? <DemoLabel /> : null}
         <Text>
           {total
             ? `${total} change${total === 1 ? '' : 's'} in flight or recently merged to contracts this project's teams use.`
