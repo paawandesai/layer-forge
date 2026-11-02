@@ -66,3 +66,37 @@ test('filedFor finds the issue a consumer task was filed for', async () => {
   assert.equal(filedFor({ fields: { labels: [], issuelinks: [link] } }), null);
   assert.equal(filedFor({ fields: { labels: ['layer-consumer'], issuelinks: [] } }), null);
 });
+
+import { adfLines, chooseAction, dueDate } from '../src/lib/tickets.js';
+
+test('adfLines flattens a filed description for preview', () => {
+  const [plan] = planConsumerIssues({
+    issueKey: 'JOBS-12',
+    defaultProject: 'JOBS',
+    entries: [entry('jobs-api', [{ repo: 'fernway-test/web', severity: 'action', owners: ['@t/ops'], why: ['pins client'] }])],
+  });
+  const lines = adfLines(plan.description);
+  assert.match(lines[0], /^JOBS-12 changes jobs-api/);
+  assert.ok(lines.some((l) => l.startsWith('• ') && l.includes('technician_id')));
+  assert.ok(lines.includes('• Why fernway-test/web is affected: pins client'));
+  assert.deepEqual(plan.repos, ['fernway-test/web']);
+});
+
+test('chooseAction comments on an open Layer issue for the same repos in the same project', () => {
+  const plan = { project: 'OPS', repos: ['fernway-test/web'] };
+  assert.deepEqual(chooseAction(plan, [{ key: 'OPS-3', project: 'OPS', summary: 'Prepare fernway-test/web for jobs-api changes in JOBS-12' }]), {
+    mode: 'comment',
+    target: 'OPS-3',
+  });
+  assert.deepEqual(chooseAction(plan, [{ key: 'DISP-3', project: 'DISP', summary: 'Prepare fernway-test/web for x' }]), { mode: 'create' });
+  assert.deepEqual(chooseAction(plan, []), { mode: 'create' });
+});
+
+test('dueDate accepts today or later in yyyy-mm-dd', () => {
+  const today = new Date('2026-11-02T10:00:00Z');
+  assert.equal(dueDate('2026-11-20', today), '2026-11-20');
+  assert.equal(dueDate('2026-11-02', today), '2026-11-02');
+  assert.equal(dueDate('2026-10-01', today), null);
+  assert.equal(dueDate('next week', today), null);
+  assert.equal(dueDate('', today), null);
+});
