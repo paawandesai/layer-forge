@@ -6,6 +6,18 @@ export const RISK = {
   info: { label: 'Informed', appearance: 'default', fallback: 'Uses this contract, but not the part that changes' },
 };
 
+// Layer's per-change risk level (1 critical to 5 informational).
+const LEVEL_APPEARANCE = { critical: 'removed', high: 'removed', moderate: 'moved', low: 'default', informational: 'default' };
+
+export function riskLabel(r) {
+  const name = String(r?.name || '');
+  return name ? `${name.charAt(0).toUpperCase()}${name.slice(1)} risk` : '';
+}
+
+export function riskAppearance(r) {
+  return LEVEL_APPEARANCE[r?.name] || 'default';
+}
+
 export function risk(severity) {
   return RISK[severity] || RISK.info;
 }
