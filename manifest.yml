@@ -31,6 +31,7 @@ modules:
         function: resolver
       render: native
       title: Layer for Jira
+      icon: resource:icons;layer.svg
   rovo:agent:
     - key: contract-steward
       name: Contract Steward
@@ -49,7 +50,7 @@ modules:
         - get-issue-blast-radius
   rovo:mcp:
     - key: layer-mcp
-      name: Layer contract graph
+      name: Layer for Jira
       tools:
         - get-contract-consumers
         - get-incoming-changes
