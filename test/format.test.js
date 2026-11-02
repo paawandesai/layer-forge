@@ -37,7 +37,16 @@ test('summary counts repositories and teams', () => {
     change('c1', 'github.com/fernway-test/dispatch', ['@fernway-test/dispatch']),
     change('c1', 'github.com/fernway-test/web', ['@fernway-test/ops-tools']),
   ]);
-  assert.equal(summarize(entries), '1 breaking contract change, reaching 2 consuming repositories owned by 2 teams.');
+  assert.equal(summarize(entries), '1 breaking contract change: 2 repositories owned by 2 teams will break.');
+  const mixed = blastRadius([
+    change('c1', 'github.com/fernway-test/dispatch', ['@fernway-test/dispatch']),
+    change('c1', 'github.com/fernway-test/mobile-tech', ['@fernway-test/mobile'], {
+      route: { consumer: 'github.com/fernway-test/mobile-tech', severity: 'info', owners: ['@fernway-test/mobile'], edges: [] },
+    }),
+  ]);
+  assert.equal(summarize(mixed), '1 breaking contract change: 1 repository owned by 1 team will break; 1 more repository is only informed or should watch on upgrade.');
+  const quiet = blastRadius([change('c2', 'github.com/x/y', ['@x/y'], { class: 'compatible', route: { consumer: 'github.com/x/y', severity: 'info', owners: ['@x/y'], edges: [] } })]);
+  assert.equal(summarize(quiet), '1 contract change, none breaking, reaching 1 consuming repository owned by 1 team.');
   assert.match(summarize([]), /No contract changes/);
 });
 

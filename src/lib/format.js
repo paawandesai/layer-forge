@@ -78,14 +78,25 @@ export function prUrl(producer, pr) {
 }
 
 export function summarize(entries) {
-  const breaking = entries.filter((e) => e.class === 'breaking');
-  const teams = new Set(entries.flatMap((e) => e.consumers.flatMap((c) => c.owners)));
-  const repos = new Set(entries.flatMap((e) => e.consumers.map((c) => c.repo)));
   if (entries.length === 0) return 'No contract changes in the pull requests linked to this issue.';
+  const breaking = entries.filter((e) => e.class === 'breaking');
+  const all = entries.flatMap((e) => e.consumers);
+  const repos = (list) => new Set(list.map((c) => c.repo)).size;
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   const head = breaking.length
-    ? `${breaking.length} breaking contract change${breaking.length === 1 ? '' : 's'}`
-    : `${entries.length} contract change${entries.length === 1 ? '' : 's'}, none breaking`;
-  return `${head}, reaching ${repos.size} consuming repositor${repos.size === 1 ? 'y' : 'ies'} owned by ${teams.size} team${teams.size === 1 ? '' : 's'}.`;
+    ? plural(breaking.length, 'breaking contract change', 'breaking contract changes')
+    : `${plural(entries.length, 'contract change', 'contract changes')}, none breaking`;
+  const action = all.filter((c) => c.severity === 'action');
+  if (!action.length) {
+    const teams = new Set(all.flatMap((c) => c.owners)).size;
+    return `${head}, reaching ${plural(repos(all), 'consuming repository', 'consuming repositories')} owned by ${plural(teams, 'team', 'teams')}.`;
+  }
+  // Lead with what will break, so the count matches the "Tell N teams" button.
+  const breakRepos = new Set(action.map((c) => c.repo));
+  const teams = new Set(action.flatMap((c) => c.owners)).size;
+  const rest = [...new Set(all.map((c) => c.repo))].filter((r) => !breakRepos.has(r)).length;
+  const tail = rest ? `; ${plural(rest, 'more repository is', 'more repositories are')} only informed or should watch on upgrade.` : '.';
+  return `${head}: ${plural(breakRepos.size, 'repository', 'repositories')} owned by ${plural(teams, 'team', 'teams')} will break${tail}`;
 }
 
 // Plain text for a Rovo answer about a contract's consumers.
