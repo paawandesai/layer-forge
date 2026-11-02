@@ -49,6 +49,16 @@ modules:
         - get-incoming-changes
         - get-issue-blast-radius
         - tell-consumers
+  rovo:skill:
+    - key: layer-contract-check
+      source:
+        dir: rovo-skills/layer-contract-check
+      dependencies:
+        tools:
+          - get-contract-consumers
+          - get-incoming-changes
+          - get-issue-blast-radius
+          - tell-consumers
   rovo:mcp:
     - key: layer-mcp
       name: Layer for Jira
