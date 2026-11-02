@@ -130,6 +130,25 @@ modules:
           type: string
           required: false
           description: A Jira issue key such as JOBS-12. Defaults to the issue being viewed.
+    - key: automation-check
+      name: Check Layer blast radius
+      function: automationCheck
+      actionVerb: CREATE
+      description: Comments on a Jira issue with the contract changes in its pull requests when another team's code will break, and can file issues for those teams.
+      config:
+        resource: automation
+        render: native
+      inputs:
+        issueKey:
+          title: Issue key
+          type: string
+          required: true
+          description: The issue to check, usually {{issue.key}}.
+        tellTeams:
+          title: Tell the affected teams
+          type: string
+          required: false
+          description: yes to also file issues for the teams whose code will break.
     - key: tell-consumers
       name: Tell the affected teams
       function: tellConsumers
@@ -164,7 +183,13 @@ modules:
     - key: layer-graph-refresh
       function: graphRefresh
       interval: hour
+  automation:actionProvider:
+    - key: layer-automation
+      actions:
+        - automation-check
   function:
+    - key: automationCheck
+      handler: index.automationCheck
     - key: graphConnectionChange
       handler: index.onGraphConnectionChange
     - key: graphRefresh
@@ -184,6 +209,8 @@ resources:
     path: src/frontend/panel.jsx
   - key: admin
     path: src/frontend/admin.jsx
+  - key: automation
+    path: src/frontend/automation.jsx
   - key: gadget
     path: src/frontend/gadget.jsx
   - key: project
