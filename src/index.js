@@ -4,8 +4,9 @@ import { kvs as storage } from '@forge/kvs';
 import { createClient, layerConfig, LayerError } from './lib/layer.js';
 import { blastRadius, summarize, consumersText, changesText, groupIncoming } from './lib/format.js';
 import { adfLines, chooseAction, dueDate, filedFor, parseTeamProjects, planConsumerIssues, teamsForProject } from './lib/tickets.js';
-import { DEMO_PROJECT, DEMO_TEAMS, demoFailure, demoKeys, demoReport, demoTeamProjects, pickIssueType, planDemo } from './lib/demo.js';
+import { DEMO_PROJECT, DEMO_TEAMS, isDemoData, demoFailure, demoKeys, demoReport, demoTeamProjects, pickIssueType, planDemo } from './lib/demo.js';
 import { setupSteps } from './lib/setup.js';
+import { riskOverview } from './lib/overview.js';
 import { graph } from '@forge/teamwork-graph';
 import { graphObjects } from './lib/graph.js';
 
@@ -293,6 +294,31 @@ resolver.define('getIncoming', async (req) => {
     const issues = Object.fromEntries(found.filter(Boolean));
     for (const e of entries) e.issueSummary = issues[e.issue] ?? null;
     return { projectKey, teams, entries, groups: groupIncoming(entries, teams) };
+  } catch (err) {
+    return failure(err);
+  }
+});
+
+// Dashboard gadget: breaking changes across every mapped team, and who has
+// not been told yet.
+resolver.define('getOverview', async () => {
+  try {
+    const mapped = Object.keys(parseTeamProjects((await settings()).teamProjects));
+    const teams = mapped.length ? mapped : DEMO_TEAMS;
+    const seen = new Set();
+    const all = [];
+    for (const owner of teams) {
+      for (const c of (await client().changes({ owner })).changes || []) {
+        const k = `${c.id}|${c.route?.consumer}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        all.push(c);
+      }
+    }
+    const entries = blastRadius(all);
+    const keys = [...new Set(entries.map((e) => e.issue).filter(Boolean))];
+    const told = Object.fromEntries(await Promise.all(keys.map(async (k) => [k, (await storage.get(`told:${k}`)) || {}])));
+    return { ...riskOverview(entries, told), teams, demo: isDemoData(entries) };
   } catch (err) {
     return failure(err);
   }

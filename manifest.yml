@@ -24,6 +24,15 @@ modules:
       render: native
       title: Incoming changes
       icon: resource:icons;layer.svg
+  jira:dashboardGadget:
+    - key: layer-risk-gadget
+      title: Contract risk
+      description: Breaking API, event and schema changes in flight across your teams, and which teams have not been told yet.
+      thumbnail: resource:icons;layer.svg
+      resource: gadget
+      resolver:
+        function: resolver
+      render: native
   jira:adminPage:
     - key: layer-admin
       resource: admin
@@ -175,6 +184,8 @@ resources:
     path: src/frontend/panel.jsx
   - key: admin
     path: src/frontend/admin.jsx
+  - key: gadget
+    path: src/frontend/gadget.jsx
   - key: project
     path: src/frontend/project.jsx
   - key: icons
