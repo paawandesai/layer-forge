@@ -23,7 +23,12 @@ This takes about 5 minutes and needs no accounts or tokens. The app comes connec
 4. Other issues to try: FERN-2 (change a billing field's type), FERN-3 (rename an event field), FERN-4 (remove an endpoint) and FERN-6 (a database change).
 5. Open **FERN**, then **Incoming changes** in the project sidebar, to see changes grouped by team.
 
-## 4. Ask Rovo (sites with Rovo)
+## 4. Dashboard and automation (optional)
+
+- **Dashboard:** open **Dashboards**, create one, press **Add gadget**, and add **Contract risk**. It lists breaking changes in flight across the Fernway teams and which teams have not been told.
+- **Automation:** in **FERN**, open **Project settings**, then **Automation**, and create a rule. Use the trigger "Work item transitioned" to In Progress and the action **Check Layer blast radius** (issue key `{{issue.key}}`). Move FERN-4 to In Progress: Layer comments with the blast radius. New actions can take up to 20 minutes to appear in the rule builder after install.
+
+## 5. Ask Rovo (sites with Rovo)
 
 1. Open Rovo chat and pick **Contract Steward** under agents.
 2. Try these questions:
@@ -32,6 +37,10 @@ This takes about 5 minutes and needs no accounts or tokens. The app comes connec
    - "What contract changes are coming to the APIs my team calls?" (ask this from a FERN issue)
    - "Tell the affected teams about FERN-2." Rovo asks you to confirm before it files anything.
 3. In Rovo Studio, you can add the **Layer for Jira** tools and the **layer-contract-check** skill to any agent.
+
+## 6. Teamwork Graph (optional, site admins)
+
+In Atlassian Administration, open **Apps**, your site, **Connected apps**, **Layer for Jira**, then **Connections**, and press **Connect** under Teamwork Graph connectors. Fernway's services, what each one uses, and the FERN issues changing them appear in the Teamwork Graph, so Rovo search can find them.
 
 ## If something looks wrong
 
