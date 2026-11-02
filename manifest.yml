@@ -92,6 +92,11 @@ modules:
           type: string
           required: false
           description: A team handle from CODEOWNERS, for example @fernway-test/mobile.
+        project:
+          title: Jira project key
+          type: string
+          required: false
+          description: A Jira project key such as FERN. Answers for the teams mapped to that project; defaults to the project being viewed when no repository or owner is given.
     - key: get-issue-blast-radius
       name: Get an issue's blast radius
       function: issueChanges

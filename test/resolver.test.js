@@ -141,3 +141,12 @@ test('Rovo actions return text, including on failure', async () => {
   layerBody = { error: 'internal', message: 'boom' };
   assert.match(await app.getIssueChanges({ issueKey: 'FERN-1' }), /^Layer error: /);
 });
+
+test('incoming changes for "my team" use the project mapping', async () => {
+  await call('saveSettings', { moduleKey: 'app:layer-admin', payload: { teamProjects: '@fernway-test/dispatch = FERN' } });
+  const text = await app.getIncomingChanges({ context: { jira: { projectKey: 'FERN' } } });
+  assert.match(text, /^@fernway-test\/dispatch \(mapped to FERN\):/);
+  assert.match(text, /jobs-api in \[fernway-test\/jobs-api #296\]/);
+  assert.match(await app.getIncomingChanges({ project: 'OPS' }), /No code owner teams are mapped to Jira project OPS/);
+  assert.match(await app.getIncomingChanges({}), /Jira project key/);
+});
