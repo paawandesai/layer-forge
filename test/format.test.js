@@ -76,3 +76,32 @@ test('findingLines prefers grouped findings', async () => {
   assert.deepEqual(findingLines({ findings: ['a', 'b'], findingGroups: [{ text: 'x changed', locations: ['GET /a', 'GET /b'] }] }), ['x changed (GET /a, GET /b)']);
   assert.deepEqual(findingLines({ findings: ['a', 'b'] }, 1), ['a']);
 });
+
+import { groupIncoming, issueKeyIn } from '../src/lib/format.js';
+
+test('issueKeyIn reads the key a branch names', () => {
+  assert.equal(issueKeyIn('FERN-1-technician-ids'), 'FERN-1');
+  assert.equal(issueKeyIn('feature/jobs-12-cancel'), 'JOBS-12');
+  assert.equal(issueKeyIn('drop-get'), '');
+  assert.equal(issueKeyIn(undefined), '');
+});
+
+test('groupIncoming groups by team and keeps only that team\'s consumers', () => {
+  const entries = [
+    {
+      id: 'a',
+      consumers: [
+        { repo: 'dispatch', severity: 'action', owners: ['@t/dispatch'] },
+        { repo: 'web', severity: 'watch', owners: ['@t/ops'] },
+      ],
+    },
+    { id: 'b', consumers: [{ repo: 'web', severity: 'info', owners: ['@t/ops'] }] },
+  ];
+  const [d, o, m] = groupIncoming(entries, ['@t/dispatch', '@t/ops', '@t/mobile']);
+  assert.equal(d.changes.length, 1);
+  assert.equal(d.changes[0].consumers.length, 1);
+  assert.equal(d.summary, "1 incoming change, 1 will break @t/dispatch's code.");
+  assert.equal(o.changes.length, 2);
+  assert.equal(o.summary, '2 incoming changes, none breaking.');
+  assert.equal(m.summary, 'Nothing incoming.');
+});

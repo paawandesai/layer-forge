@@ -22,6 +22,7 @@ export function blastRadius(changes = []) {
         class: c.class || 'compatible',
         state: c.state || '',
         pr: c.change_request,
+        issue: issueKeyIn(c.ref),
         findings: (c.findings || []).map((f) => `${f.location}: ${f.message}`),
         findingGroups: groupFindings(c.findings || []),
         findingsTotal: c.findings_total ?? (c.findings || []).length,
@@ -112,4 +113,26 @@ export function changesText(entries) {
       return `- ${e.contract}${pr}: ${e.class.replace('_', ' ')}, ${e.state.replace('_', ' ')}. Reaches ${who || 'no consumers'}.\n  ${findingLines(e, 3).join('\n  ')}`;
     })
     .join('\n');
+}
+
+// The Jira issue key a branch names, e.g. "FERN-1-technician-ids" -> "FERN-1".
+export function issueKeyIn(ref = '') {
+  const m = String(ref || '').match(/(?:^|[^A-Za-z0-9])([A-Za-z][A-Za-z0-9]+-\d+)(?![0-9])/);
+  return m ? m[1].toUpperCase() : '';
+}
+
+// Incoming changes for a project, one group per mapped team, each change
+// keeping only that team's consumers. Teams with nothing incoming are kept
+// so the page can say so.
+export function groupIncoming(entries = [], teams = []) {
+  return teams.map((team) => {
+    const changes = entries
+      .map((e) => ({ ...e, consumers: e.consumers.filter((c) => c.owners.includes(team)) }))
+      .filter((e) => e.consumers.length);
+    const breaking = changes.filter((e) => e.consumers.some((c) => c.severity === 'action')).length;
+    const summary = changes.length
+      ? `${changes.length} incoming change${changes.length === 1 ? '' : 's'}, ${breaking ? `${breaking} will break ${team}'s code` : 'none breaking'}.`
+      : 'Nothing incoming.';
+    return { team, changes, breaking, summary };
+  });
 }

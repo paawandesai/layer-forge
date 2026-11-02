@@ -2,7 +2,7 @@ import ResolverModule from '@forge/resolver';
 import { asUser, fetch, route } from '@forge/api';
 import { kvs as storage } from '@forge/kvs';
 import { createClient, layerConfig, LayerError } from './lib/layer.js';
-import { blastRadius, summarize, consumersText, changesText } from './lib/format.js';
+import { blastRadius, summarize, consumersText, changesText, groupIncoming } from './lib/format.js';
 import { filedFor, parseTeamProjects, planConsumerIssues, teamsForProject } from './lib/tickets.js';
 import { DEMO_PROJECT, demoFailure, demoKeys, demoReport, demoTeamProjects, pickIssueType, planDemo } from './lib/demo.js';
 import { setupSteps } from './lib/setup.js';
@@ -235,7 +235,20 @@ resolver.define('getIncoming', async (req) => {
       seen.add(k);
       return true;
     });
-    return { projectKey, teams, entries: blastRadius(unique) };
+    const entries = blastRadius(unique);
+    // Link each change to its Jira issue when the branch names one on this site.
+    const keys = [...new Set(entries.map((e) => e.issue).filter(Boolean))].slice(0, 20);
+    const found = await Promise.all(
+      keys.map((k) =>
+        jira(route`/rest/api/3/issue/${k}?fields=summary`, null, { allow404: true }).then(
+          (i) => (i ? [k, i.fields?.summary || ''] : null),
+          () => null,
+        ),
+      ),
+    );
+    const issues = Object.fromEntries(found.filter(Boolean));
+    for (const e of entries) e.issueSummary = issues[e.issue] ?? null;
+    return { projectKey, teams, entries, groups: groupIncoming(entries, teams) };
   } catch (err) {
     return failure(err);
   }
