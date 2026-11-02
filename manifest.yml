@@ -140,7 +140,26 @@ modules:
           type: string
           required: false
           description: Optional due date for the new issues, as YYYY-MM-DD.
+  graph:connector:
+    - key: layer-services
+      name: Layer
+      icons:
+        light: resource:icons;layer.svg
+        dark: resource:icons;layer.svg
+      objectTypes:
+        - atlassian:software-service
+      datasource:
+        onConnectionChange:
+          function: graphConnectionChange
+  scheduledTrigger:
+    - key: layer-graph-refresh
+      function: graphRefresh
+      interval: hour
   function:
+    - key: graphConnectionChange
+      handler: index.onGraphConnectionChange
+    - key: graphRefresh
+      handler: index.refreshGraph
     - key: resolver
       handler: index.handler
     - key: consumers
@@ -172,6 +191,9 @@ permissions:
     - write:jira-work
     - storage:app
     - manage:jira-project
+    - read:object:jira
+    - write:object:jira
+    - delete:object:jira
   external:
     fetch:
       backend:

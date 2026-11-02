@@ -4,8 +4,10 @@ import { kvs as storage } from '@forge/kvs';
 import { createClient, layerConfig, LayerError } from './lib/layer.js';
 import { blastRadius, summarize, consumersText, changesText, groupIncoming } from './lib/format.js';
 import { adfLines, chooseAction, dueDate, filedFor, parseTeamProjects, planConsumerIssues, teamsForProject } from './lib/tickets.js';
-import { DEMO_PROJECT, demoFailure, demoKeys, demoReport, demoTeamProjects, pickIssueType, planDemo } from './lib/demo.js';
+import { DEMO_PROJECT, DEMO_TEAMS, demoFailure, demoKeys, demoReport, demoTeamProjects, pickIssueType, planDemo } from './lib/demo.js';
 import { setupSteps } from './lib/setup.js';
+import { graph } from '@forge/teamwork-graph';
+import { graphObjects } from './lib/graph.js';
 
 const client = () => createClient({ ...layerConfig(), fetch });
 
@@ -361,5 +363,51 @@ export const tellConsumersAction = async (payload) => {
     if (err instanceof LayerError) return `Layer error: ${failure(err).error.message}`;
     console.error(err);
     return `Jira error: ${String(err.message || err).slice(0, 300)}`;
+  }
+};
+
+// Teamwork Graph connector: once an admin connects it, Layer's services and
+// their consumers go into the graph, linked to the Jira issues changing them.
+
+const GRAPH_KEY = 'graph:connection';
+
+async function syncGraph(connectionId) {
+  const mapped = Object.keys(parseTeamProjects((await settings()).teamProjects));
+  const teams = mapped.length ? mapped : DEMO_TEAMS;
+  const changes = [];
+  for (const owner of teams) changes.push(...((await client().changes({ owner })).changes || []));
+  const objects = graphObjects(changes);
+  for (let i = 0; i < objects.length; i += 100) {
+    const result = await graph.setObjects({ objects: objects.slice(i, i + 100), connectionId });
+    if (!result.success) console.error('Teamwork Graph rejected objects', JSON.stringify(result.error || result).slice(0, 1000));
+  }
+  return objects.length;
+}
+
+export const onGraphConnectionChange = async (event) => {
+  const { action, connectionId } = event || {};
+  if (action === 'DELETED') {
+    await storage.delete(GRAPH_KEY).catch(() => null);
+    return { success: true };
+  }
+  if (connectionId) {
+    await storage.set(GRAPH_KEY, { connectionId, at: new Date().toISOString() });
+    try {
+      console.log(`Teamwork Graph: sent ${await syncGraph(connectionId)} services`);
+    } catch (err) {
+      console.error('Teamwork Graph sync failed', err);
+    }
+  }
+  return { success: true };
+};
+
+// Hourly refresh while a connection exists.
+export const refreshGraph = async () => {
+  const conn = await storage.get(GRAPH_KEY);
+  if (!conn?.connectionId) return;
+  try {
+    console.log(`Teamwork Graph: refreshed ${await syncGraph(conn.connectionId)} services`);
+  } catch (err) {
+    console.error('Teamwork Graph refresh failed', err);
   }
 };
