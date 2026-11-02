@@ -28,7 +28,7 @@ test('planDemo creates all on a fresh project and the rest on a partial one', ()
   const p = planDemo({ existingKeys: ['FERN-2', 'FERN-1'], nextNumber: 3 });
   assert.deepEqual(p.create.map((c) => c.key), ['FERN-3', 'FERN-4', 'FERN-5', 'FERN-6']);
   assert.deepEqual(p.kept, ['FERN-1', 'FERN-2']);
-  assert.equal(p.create[0].summary, 'Add region to the job-assigned event');
+  assert.equal(p.create[0].summary, 'Rename eta to eta_at in the job-assigned event');
   assert.deepEqual(planDemo({ existingKeys: ['FERN-1', 'FERN-2', 'FERN-3', 'FERN-4', 'FERN-5', 'FERN-6'] }).create, []);
 });
 

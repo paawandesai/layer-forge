@@ -20,7 +20,7 @@ This takes about 5 minutes and needs no accounts or tokens. The app comes connec
 1. Open **FERN-1, Store technician IDs as integers**.
 2. In the issue's right-hand details, open **Layer: Blast radius**. It shows the breaking change to `jobs-api` and the teams it reaches: who **will break**, who should **watch on upgrade**, and why.
 3. Press **Tell N teams**. Check the preview, pick a due date if you like, and confirm. Linked tasks appear in FERN, one per affected team. Open one: it points back to FERN-1.
-4. Other issues to try: FERN-2 (rename a billing field), FERN-4 (remove an endpoint) and FERN-6 (a database change).
+4. Other issues to try: FERN-2 (change a billing field's type), FERN-3 (rename an event field), FERN-4 (remove an endpoint) and FERN-6 (a database change).
 5. Open **FERN**, then **Incoming changes** in the project sidebar, to see changes grouped by team.
 
 ## 4. Ask Rovo (sites with Rovo)
@@ -35,7 +35,7 @@ This takes about 5 minutes and needs no accounts or tokens. The app comes connec
 
 ## If something looks wrong
 
-- **"Layer is not answering":** the demo server is waking up. Press **Try again** after a few seconds.
+- **"Layer is not answering":** the demo server is briefly unavailable. Press **Try again** after a minute.
 - **No Blast radius in the sidebar:** reload the issue. It is also under the issue's **Apps** button.
 - **"No contract changes" on FERN-1:** the demo was loaded into a project whose keys do not match. Load it on a site without an existing FERN project.
 

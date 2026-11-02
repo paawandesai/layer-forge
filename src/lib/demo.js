@@ -9,12 +9,12 @@ export const DEMO_ISSUES = [
     description: 'Technician IDs are numeric everywhere else. Change technician_id in the jobs API from string to integer.',
   },
   {
-    summary: 'Rename invoice amount to total',
-    description: 'Finance wants "total" on invoices to match the ledger. Rename the amount field in the billing API.',
+    summary: 'Store invoice amounts in cents',
+    description: 'Floating-point totals cause rounding errors. Replace the invoice amount field in the billing API with amount_cents, an integer in the currency\'s minor unit.',
   },
   {
-    summary: 'Add region to the job-assigned event',
-    description: 'Dispatch needs the job region on job-assigned so notifications can route by region.',
+    summary: 'Rename eta to eta_at in the job-assigned event',
+    description: 'Align event field names with our timestamp convention: rename eta to eta_at in the job-assigned event that dispatch publishes.',
   },
   {
     summary: 'Remove the pay-invoice endpoint',
