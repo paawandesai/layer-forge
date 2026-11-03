@@ -42,6 +42,12 @@ This takes about 5 minutes and needs no accounts or tokens. The app comes connec
 
 In Atlassian Administration, open **Apps**, your site, **Connected apps**, **Layer for Jira**, then **Connections**, and press **Connect** under Teamwork Graph connectors. Fernway's services, what each one uses, and the FERN issues changing them appear in the Teamwork Graph, so Rovo search can find them.
 
+## 7. Try more (optional)
+
+- **Route a team to your own project:** on the admin page, add a line such as `@fernway-test/growth = YOURKEY` under Team routing and press Save. Then press Tell on FERN-3, and the hand-off lands in your project.
+- **Other issues:** FERN-5 reaches the most teams, and FERN-6 is a negative case with no contract changes. Pressing Tell a second time never files a duplicate.
+- **Free-form Rovo questions:** for example "Who uses identity-api?", "What's coming to @fernway-test/mobile?" or "Which teams haven't been told about FERN-5?"
+
 ## If something looks wrong
 
 - **"Layer is not answering":** the demo server is briefly unavailable. Press **Try again** after a minute.
