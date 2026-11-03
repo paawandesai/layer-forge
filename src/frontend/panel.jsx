@@ -52,7 +52,7 @@ function Preview({ plans, onClose, onConfirm, busy }) {
           {files ? (
             <Stack space="space.050">
               <Label labelFor="layer-due">Due date for new issues (optional)</Label>
-              <DatePicker id="layer-due" value={due} onChange={(v) => setDue(v || '')} />
+              <DatePicker id="layer-due" placeholder="No due date" value={due} onChange={(v) => setDue(v || '')} />
             </Stack>
           ) : null}
         </Stack>
