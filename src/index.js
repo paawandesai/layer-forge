@@ -378,7 +378,8 @@ resolver.define('getOverview', async () => {
     }
     // Only link issues that exist on this site, and count each one's full
     // blast radius (the per-team queries above see only mapped teams).
-    const candidates = [...new Set(blastRadius(all).map((e) => e.issue).filter(Boolean))];
+    // The demo issues are always checked, since their consumers' teams may be unmapped.
+    const candidates = [...new Set([...blastRadius(all).map((e) => e.issue).filter(Boolean), ...demoKeys()])];
     const exists = await Promise.all(
       candidates.map((k) => jira(route`/rest/api/3/issue/${k}?fields=summary`, null, { allow404: true }).then(Boolean, () => false)),
     );
