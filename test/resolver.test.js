@@ -79,6 +79,15 @@ test('getBlastRadius returns the shaped blast radius', async () => {
   assert.match(out.summary, /^1 breaking contract change/);
 });
 
+test('getBlastRadius counts an open linked hand-off as told', async () => {
+  jiraRoutes['POST /rest/api/3/search/jql'] = () => [
+    200,
+    { issues: [{ key: 'FERN-7', fields: { project: { key: 'FERN' }, summary: 'Prepare fernway-test/dispatch for jobs-api changes in FERN-1' } }] },
+  ];
+  const out = await call('getBlastRadius', { issue: { key: 'FERN-1' } });
+  assert.deepEqual(out.told, { '@fernway-test/dispatch': 'FERN-7' });
+});
+
 test('getBlastRadius reports a missing connection and an unreachable Layer', async () => {
   delete process.env.LAYER_TOKEN;
   assert.equal((await call('getBlastRadius', { issue: { key: 'FERN-1' } })).error.code, 'not_connected');
