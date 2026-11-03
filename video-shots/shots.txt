@@ -1,0 +1,32 @@
+Layer for Jira demo: video stills (captured 2026-11-03, site one-atlas-njzg.atlassian.net)
+Frames are 1920x993 (the full Chrome viewport at 100% zoom, stitched from four native-resolution tiles).
+The "closeup" files are 2x crops of the frame before them.
+
+01-fern-board.png                                 FERN board (Fernway Jobs Kanban), FERN-1..FERN-11 in Backlog
+02a-FERN-1-issue-view.png                         FERN-1 "Store technician IDs as integers", Development field visible, Blast radius collapsed
+02b-FERN-1-hover-development.png                  Same view, cursor hovering the Development field
+03a-blast-radius-expanded.png                     Layer "Blast radius" panel expanded in the FERN-1 sidebar: summary, Tell 2 teams, jobs-api change, Who uses it (3)
+03b-blast-radius-summary-closeup.png              Closeup: summary line, Tell 2 teams button, jobs-api Breaking/High risk, PR #296, changed endpoints
+03c-blast-radius-will-break-and-informed-closeup.png  Closeup: Will break dispatch, Informed mobile-tech, Will break web, with the reasons
+04a-tell-preview-modal-FERN-1.png                 "Tell the teams whose code will break" preview for FERN-1 (shows "Comment on FERN-7 / FERN-8" because the hand-offs already exist)
+04b-filed-issue-FERN-7-filed-by-layer-banner.png  FERN-7 (filed by Layer for @fernway-test/dispatch) with its "Filed by Layer" banner pointing at FERN-1
+05a-rovo-contract-steward-question-typed.png      Rovo sidebar, agent Contract Steward, "What does FERN-2 break?" typed
+05b-rovo-answer-FERN-2-top.png                    Contract Steward answer: FERN-2 breaks 3 repositories owned by 3 teams; billing-api PR #147
+05c-rovo-answer-FERN-2-consumers.png              Answer continued: affected consumers and the offer to tell the teams
+06a-rovo-mcp-test-agent-question-typed.png        Rovo sidebar, agent "MCP test", "Is FERN-2 safe to merge?" typed
+06b-rovo-mcp-test-answer-top.png                  MCP test answer: FERN-2 is not safe to merge
+06c-rovo-mcp-test-answer-blocking-tasks.png       Answer continued: blocking hand-off issues FERN-11, FERN-10, FERN-9
+06d-rovo-mcp-test-answer-summary-of-risks.png     Answer end: Summary of Risks and follow-up suggestions
+07a-incoming-changes-top.png                      FERN project page "Incoming changes" (Layer): header plus @fernway-test/dispatch
+07b-incoming-changes-dispatch-and-api-guild.png   Scrolled: dispatch jobs-api, @fernway-test/api-guild
+07c-incoming-changes-ops-tools.png                Scrolled: @fernway-test/ops-tools
+07d-incoming-changes-mobile.png                   Scrolled: @fernway-test/mobile
+07e-incoming-changes-portal.png                   Scrolled: @fernway-test/portal
+08a-layer-admin-get-started-and-team-routing.png  Jira settings > Marketplace apps > Layer for Jira: Get started checklist and team-to-project mapping
+08b-layer-admin-checklist-closeup.png             Closeup: Get started checklist (Done, Done, Next: Open FERN-1)
+08c-layer-admin-team-mapping-closeup.png          Closeup: team-to-project mapping (@fernway-test/dispatch = DISP, @fernway-test/ops-tools = OPS)
+
+Not captured (blocked or out of scope):
+- Tell confirm on the issue page, the told list, the due-date picker: confirming would post to Jira and was blocked by the Mac's safety check; old hand-offs FERN-7/8 could not be deleted either, so the preview shows the "comment" variant.
+- Rovo "Tell the affected teams." and its confirmation: sending it was blocked for the same reason.
+- Rovo Studio config of "MCP test": it opens on home.atlassian.com, outside the allowed site.
