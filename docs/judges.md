@@ -9,11 +9,12 @@ This takes about 5 minutes and needs no accounts or tokens. The app comes connec
 
 ## 2. Load the demo (Jira admin)
 
-1. In Jira, open **Settings** (the gear, top right), then **Apps**, then **Layer for Jira** in the left sidebar.
-2. Under **Get started**, step 1 should say **Connected to Layer**.
-3. Press **Load the Fernway demo**. It creates the project **Fernway Jobs (FERN)** with issues FERN-1 to FERN-6, which match the Fernway pull requests, and maps the Fernway teams to it.
+1. In Jira, open **Settings** (the gear, top right), then **Marketplace apps**. If the page says app management has moved to Administration, ignore that: use **Layer for Jira** under **Apps** in the left sidebar.
+2. The first time, Jira may ask you to **Allow access** so the app can act as you. Allow it.
+3. Under **Get started**, step 1 should say **Connected to Layer**.
+4. Press **Load the Fernway demo**. It creates the project **Fernway Jobs (FERN)** with issues FERN-1 to FERN-6, which match the Fernway pull requests, and maps the Fernway teams to it.
    - If your site already has a project with the key FERN, the app says so and changes nothing. Use a site without one.
-4. Step 3 now links **FERN-1**.
+5. Step 3 now links **FERN-1**.
 
 ## 3. See the blast radius
 

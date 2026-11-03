@@ -36,7 +36,7 @@ resolver.define('getBlastRadius', async (req) => {
     const parent = entries.length
       ? null
       : await jira(route`/rest/api/3/issue/${issueKey}?fields=labels,issuelinks`, null, { allow404: true })
-          .then(filedFor, () => null);
+          .then(filedFor, orNull);
     return {
       issueKey,
       filedFor: parent,
@@ -47,6 +47,7 @@ resolver.define('getBlastRadius', async (req) => {
       told,
     };
   } catch (err) {
+    if (needsConsent(err)) throw err;
     return failure(err);
   }
 });
@@ -73,6 +74,19 @@ resolver.define('saveSettings', async (req) => {
   await storage.set(SETTINGS_KEY, { teamProjects });
   return { saved: true, teams: Object.keys(parseTeamProjects(teamProjects)).length };
 });
+
+// asUser() throws NEEDS_AUTHENTICATION_ERR until the person grants the app
+// access on this site. Forge shows its "Allow access" prompt only when that
+// error leaves the resolver, so every handler rethrows it instead of
+// reporting it as a Jira permission problem.
+export function needsConsent(err) {
+  return err?.name === 'NEEDS_AUTHENTICATION_ERR';
+}
+
+const orNull = (err) => {
+  if (needsConsent(err)) throw err;
+  return null;
+};
 
 async function jira(path, body, { method = body ? 'POST' : 'GET', allow404 = false } = {}) {
   const res = await asUser().requestJira(path, {
@@ -109,7 +123,10 @@ async function tellPlans(issueKey) {
     maxResults: 50,
   }).then(
     (r) => (r.issues || []).map((i) => ({ key: i.key, project: i.fields?.project?.key, summary: i.fields?.summary || '' })),
-    () => [],
+    (err) => {
+      if (needsConsent(err)) throw err;
+      return [];
+    },
   );
   return { told, plans: plans.filter((p) => !told[p.owner]).map((p) => ({ ...p, action: chooseAction(p, open) })) };
 }
@@ -124,6 +141,7 @@ resolver.define('previewTell', async (req) => {
       plans: plans.map((p) => ({ owner: p.owner, project: p.project, summary: p.summary, lines: adfLines(p.description), action: p.action })),
     };
   } catch (err) {
+    if (needsConsent(err)) throw err;
     return failure(err);
   }
 });
@@ -131,7 +149,7 @@ resolver.define('previewTell', async (req) => {
 // Team projects differ: use Task when the project has it, else its closest type.
 async function issueTypeFor(projectKey, cache) {
   if (!cache.has(projectKey)) {
-    const meta = await jira(route`/rest/api/3/issue/createmeta/${projectKey}/issuetypes`).catch(() => null);
+    const meta = await jira(route`/rest/api/3/issue/createmeta/${projectKey}/issuetypes`).catch(orNull);
     cache.set(projectKey, pickIssueType(meta?.issueTypes || meta?.values || []) || 'Task');
   }
   return cache.get(projectKey);
@@ -149,6 +167,7 @@ async function fileIssue(plan, sourceKey, due, types = new Map()) {
   try {
     made = await jira(route`/rest/api/3/issue`, { fields: due ? { ...fields, duedate: due } : fields });
   } catch (err) {
+    if (needsConsent(err)) throw err;
     // Some projects leave the due date off their create screen.
     if (!(due && err.status === 400 && /duedate/i.test(err.body || ''))) throw err;
     made = await jira(route`/rest/api/3/issue`, { fields });
@@ -183,6 +202,7 @@ resolver.define('tellConsumers', async (req) => {
   try {
     return await tellTeams(issue.key, req.payload?.dueDate);
   } catch (err) {
+    if (needsConsent(err)) throw err;
     if (err instanceof LayerError) return failure(err);
     console.error(err);
     return { error: { code: 'jira', message: String(err.message || err) } };
@@ -209,6 +229,7 @@ async function createDemoProject() {
         ...t,
       });
     } catch (err) {
+      if (needsConsent(err)) throw err;
       if (err.status !== 400) throw err;
       last = err;
     }
@@ -240,7 +261,7 @@ resolver.define('loadDemo', async (req) => {
       });
       if (made.key !== issue.key) {
         // Jira skipped numbers because earlier issues were deleted; undo and explain.
-        await jira(route`/rest/api/3/issue/${made.key}`, null, { method: 'DELETE' }).catch(() => null);
+        await jira(route`/rest/api/3/issue/${made.key}`, null, { method: 'DELETE' }).catch(orNull);
         const gap = planDemo({ existingKeys: plan.kept.concat(created), nextNumber: Number(made.key.split('-')[1]) });
         return { error: { message: gap.error || `Expected ${issue.key} but Jira created ${made.key}.` }, created };
       }
@@ -251,6 +272,7 @@ resolver.define('loadDemo', async (req) => {
     if (mapped) await storage.set(SETTINGS_KEY, { teamProjects: demoTeamProjects() });
     return { project: DEMO_PROJECT.key, created, keys: demoKeys(), report: demoReport({ created, kept: plan.kept, mapped, issueType }) };
   } catch (err) {
+    if (needsConsent(err)) throw err;
     console.error(err);
     return { error: { message: err.status ? demoFailure(err.status, err.body) : String(err.message || err) } };
   }
@@ -276,6 +298,7 @@ resolver.define('getSetup', async () => {
         return { exists: true, keys: (found.issues || []).map((i) => i.key) };
       })
       .catch((err) => {
+        if (needsConsent(err)) throw err;
         console.error(err);
         return { exists: false, keys: [] };
       }),
@@ -306,7 +329,7 @@ resolver.define('getIncoming', async (req) => {
       keys.map((k) =>
         jira(route`/rest/api/3/issue/${k}?fields=summary`, null, { allow404: true }).then(
           (i) => (i ? [k, i.fields?.summary || ''] : null),
-          () => null,
+          orNull,
         ),
       ),
     );
@@ -314,6 +337,7 @@ resolver.define('getIncoming', async (req) => {
     for (const e of entries) e.issueSummary = issues[e.issue] ?? null;
     return { projectKey, teams, entries, groups: groupIncoming(entries, teams) };
   } catch (err) {
+    if (needsConsent(err)) throw err;
     return failure(err);
   }
 });
@@ -339,6 +363,7 @@ resolver.define('getOverview', async () => {
     const told = Object.fromEntries(await Promise.all(keys.map(async (k) => [k, (await storage.get(`told:${k}`)) || {}])));
     return { ...riskOverview(entries, told), teams, demo: isDemoData(entries) };
   } catch (err) {
+    if (needsConsent(err)) throw err;
     return failure(err);
   }
 });
@@ -350,6 +375,7 @@ const asText = (fn) => async (payload) => {
   try {
     return await fn(payload);
   } catch (err) {
+    if (needsConsent(err)) throw err;
     return `Layer error: ${failure(err).error.message}`;
   }
 };
@@ -405,6 +431,7 @@ export const tellConsumersAction = async (payload) => {
       ...created.map((c) => `- ${c.owner}: ${c.mode === 'comment' ? 'commented on' : 'filed'} ${link(c.key)}`),
     ].join('\n');
   } catch (err) {
+    if (needsConsent(err)) throw err;
     if (err instanceof LayerError) return `Layer error: ${failure(err).error.message}`;
     console.error(err);
     return `Jira error: ${String(err.message || err).slice(0, 300)}`;
@@ -440,6 +467,7 @@ export const onGraphConnectionChange = async (event) => {
     try {
       console.log(`Teamwork Graph: sent ${await syncGraph(connectionId)} services`);
     } catch (err) {
+      if (needsConsent(err)) throw err;
       console.error('Teamwork Graph sync failed', err);
     }
   }
@@ -453,6 +481,7 @@ export const refreshGraph = async () => {
   try {
     console.log(`Teamwork Graph: refreshed ${await syncGraph(conn.connectionId)} services`);
   } catch (err) {
+    if (needsConsent(err)) throw err;
     console.error('Teamwork Graph refresh failed', err);
   }
 };
@@ -469,6 +498,7 @@ export const automationCheck = async (payload) => {
     if (body) await jira(route`/rest/api/3/issue/${issueKey}/comment`, { body });
     return { commented: !!body, told: told.length };
   } catch (err) {
+    if (needsConsent(err)) throw err;
     console.error(err);
     return { errors: [{ message: err instanceof LayerError ? failure(err).error.message : `Jira error: ${String(err.message || err).slice(0, 200)}` }] };
   }

@@ -211,3 +211,17 @@ test('automation action comments when something will break', async () => {
   assert.ok(jiraCalls.some((c) => c.path === '/rest/api/3/issue/FERN-1/comment'));
   assert.match((await app.automationCheck({ issueKey: '{{issue.key}}' })).errors[0].message, /Not an issue key/);
 });
+
+test('a site that has not granted access gets Forge\'s consent prompt, not a permission error', async () => {
+  const consent = () => {
+    const err = new Error('Authentication Required');
+    err.name = 'NEEDS_AUTHENTICATION_ERR';
+    err.status = 401;
+    throw err;
+  };
+  jiraRoutes = { 'GET /rest/api/3/myself': consent, 'GET /rest/api/3/project/FERN': consent, 'POST /rest/api/3/search/jql': consent };
+  await assert.rejects(call('loadDemo', { moduleKey: 'app:layer-admin' }), { name: 'NEEDS_AUTHENTICATION_ERR' });
+  await assert.rejects(call('getSetup', { moduleKey: 'app:layer-admin' }), { name: 'NEEDS_AUTHENTICATION_ERR' });
+  layerBody = { changes: [route('github.com/fernway-test/dispatch', 'action', ['@fernway-test/dispatch'])] };
+  await assert.rejects(call('tellConsumers', { issue: { key: 'FERN-1' } }), { name: 'NEEDS_AUTHENTICATION_ERR' });
+});
