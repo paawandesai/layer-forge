@@ -46,6 +46,7 @@ In Atlassian Administration, open **Apps**, your site, **Connected apps**, **Lay
 
 - **"Layer is not answering":** the demo server is briefly unavailable. Press **Try again** after a minute.
 - **No Blast radius in the sidebar:** reload the issue. It is also under the issue's **Apps** button.
+- **A pull request link gives a GitHub 404:** the Fernway repositories are private. Everything you need to judge is in Jira, so you don't have to open them.
 - **"No contract changes" on FERN-1:** the demo was loaded into a project whose keys do not match. Load it on a site without an existing FERN project.
 
 The demo data is read-only and shared by everyone trying the app. Your site sends Layer nothing except issue keys and the names you ask about.
