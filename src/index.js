@@ -30,8 +30,23 @@ resolver.define('getBlastRadius', async (req) => {
   try {
     const body = await client().changesForIssue(issueKey);
     const entries = blastRadius(body.changes);
-    const plans = planConsumerIssues({ issueKey, entries, defaultProject: issueKey.split('-')[0] });
-    const told = (await storage.get(`told:${issueKey}`)) || {};
+    const plans = planConsumerIssues({
+      issueKey,
+      entries,
+      teamProjects: parseTeamProjects((await settings()).teamProjects),
+      defaultProject: issueKey.split('-')[0],
+    });
+    const told = { ...((await storage.get(`told:${issueKey}`)) || {}) };
+    // Teams that already have an open linked hand-off count as told, even if
+    // another install of the app filed it.
+    const untold = plans.filter((p) => !told[p.owner]);
+    if (untold.length) {
+      const open = await openHandoffs(issueKey);
+      for (const p of untold) {
+        const a = chooseAction(p, open);
+        if (a.mode === 'comment') told[p.owner] = a.target;
+      }
+    }
     // A task Layer filed for another issue points back to it instead of saying "no changes".
     const parent = entries.length
       ? null
@@ -105,6 +120,21 @@ async function jira(path, body, { method = body ? 'POST' : 'GET', allow404 = fal
 }
 
 // "Tell the consumers": one linked issue per team whose repository will break.
+// Open hand-off issues Layer filed for this issue (possibly by an earlier install).
+async function openHandoffs(issueKey) {
+  return jira(route`/rest/api/3/search/jql`, {
+    jql: `issue in linkedIssues("${issueKey}") AND labels = layer-consumer AND statusCategory != Done`,
+    fields: ['summary', 'project'],
+    maxResults: 50,
+  }).then(
+    (r) => (r.issues || []).map((i) => ({ key: i.key, project: i.fields?.project?.key, summary: i.fields?.summary || '' })),
+    (err) => {
+      if (needsConsent(err)) throw err;
+      return [];
+    },
+  );
+}
+
 // Already-told teams are remembered per issue, and an open issue Layer filed
 // earlier for the same team gets a comment instead of a duplicate.
 async function tellPlans(issueKey) {
@@ -116,17 +146,7 @@ async function tellPlans(issueKey) {
     defaultProject: issueKey.split('-')[0],
   });
   const told = (await storage.get(`told:${issueKey}`)) || {};
-  const open = await jira(route`/rest/api/3/search/jql`, {
-    jql: `issue in linkedIssues("${issueKey}") AND labels = layer-consumer AND statusCategory != Done`,
-    fields: ['summary', 'project'],
-    maxResults: 50,
-  }).then(
-    (r) => (r.issues || []).map((i) => ({ key: i.key, project: i.fields?.project?.key, summary: i.fields?.summary || '' })),
-    (err) => {
-      if (needsConsent(err)) throw err;
-      return [];
-    },
-  );
+  const open = await openHandoffs(issueKey);
   return { told, plans: plans.filter((p) => !told[p.owner]).map((p) => ({ ...p, action: chooseAction(p, open) })) };
 }
 
