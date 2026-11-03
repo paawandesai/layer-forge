@@ -9,20 +9,19 @@ This takes about 5 minutes and needs no accounts or tokens. The app comes connec
 
 ## 2. Load the demo (Jira admin)
 
-1. In Jira, open **Settings** (the gear, top right), then **Marketplace apps**. If the page says app management has moved to Administration, ignore that: use **Layer for Jira** under **Apps** in the left sidebar.
-2. The first time, Jira may ask you to **Allow access** so the app can act as you. Allow it.
-3. Under **Get started**, step 1 should say **Connected to Layer**.
-4. Press **Load the Fernway demo**. It creates the project **Fernway Jobs (FERN)** with issues FERN-1 to FERN-6, which match the Fernway pull requests, and maps the Fernway teams to it.
-   - If your site already has a project with the key FERN, the app says so and changes nothing. Use a site without one.
-5. Step 3 now links **FERN-1**.
+1. In Jira, open **Settings** (the gear, top right), then **Marketplace apps**. If the page says app management has moved to Administration, ignore that: scroll the left sidebar to **Layer for Jira** (under Apps).
+2. Under **Get started**, step 1 should say **Connected to Layer**.
+3. Press **Load the Fernway demo**. It creates the project **Fernway Jobs (FERN)** with issues FERN-1 to FERN-6, which match the Fernway pull requests, and maps the Fernway teams to it.
+   - It takes about 15 seconds. If your site already has a project with the key FERN, the app says so and changes nothing. Use a site without one.
+4. Step 3 now links **FERN-1**.
 
 ## 3. See the blast radius
 
 1. Open **FERN-1, Store technician IDs as integers**.
-2. In the issue's right-hand details, open **Layer: Blast radius**. It shows the breaking change to `jobs-api` and the teams it reaches: who **will break**, who should **watch on upgrade**, and why.
+2. In the issue's right-hand details, open **Blast radius**. It shows the breaking change to `jobs-api` and the teams it reaches: who **will break**, who should **watch on upgrade**, and why.
 3. Press **Tell N teams**. Check the preview, pick a due date if you like, and confirm. Linked tasks appear in FERN, one per affected team. Open one: it points back to FERN-1.
 4. Other issues to try: FERN-2 (change a billing field's type), FERN-3 (rename an event field), FERN-4 (remove an endpoint) and FERN-6 (a database change).
-5. Open **FERN**, then **Incoming changes** in the project sidebar, to see changes grouped by team.
+5. Open **FERN**, then the **Incoming changes** tab across the top of the project, to see changes grouped by team.
 
 ## 4. Dashboard and automation (optional)
 

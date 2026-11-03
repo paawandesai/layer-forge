@@ -65,6 +65,7 @@ function App() {
     setDemo(await invoke('loadDemo').catch((e) => ({ error: { message: String(e) } })));
     setLoading(false);
     refreshSetup();
+    invoke('getSettings').then(setSettings, () => {});
   };
 
   if (!settings) return <Spinner label="Loading settings" />;
@@ -82,6 +83,7 @@ function App() {
         <FormSection>
           <Label labelFor="teamProjects">Team to project, one per line</Label>
           <TextArea
+            key={settings.teamProjects}
             {...register('teamProjects')}
             id="teamProjects"
             defaultValue={settings.teamProjects}
