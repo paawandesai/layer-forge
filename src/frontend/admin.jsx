@@ -85,7 +85,7 @@ function App() {
             {...register('teamProjects')}
             id="teamProjects"
             defaultValue={settings.teamProjects}
-            placeholder={'@fernway-test/dispatch = DISP\n@fernway-test/ops-tools = OPS'}
+            placeholder={'Example (not saved): @your-org/payments = PAY'}
           />
         </FormSection>
         <FormFooter>
