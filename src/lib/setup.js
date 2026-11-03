@@ -27,7 +27,7 @@ export function setupSteps({ connection = {}, demo = {} } = {}) {
         },
     {
       title: `Open ${first}`,
-      status: connected && loaded ? 'todo' : 'waiting',
+      status: connected && loaded ? 'done' : 'waiting',
       body:
         connected && loaded
           ? `${first} has ${breaking} breaking contract change${breaking === 1 ? '' : 's'}. Its Blast radius panel is in the issue's sidebar.`

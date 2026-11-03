@@ -55,3 +55,10 @@ test('isDemoData recognizes Fernway results only', () => {
   assert.equal(isDemoData([{ producer: 'fernway-test/jobs-api' }, { producer: 'acme/orders' }]), false);
   assert.equal(isDemoData([]), false);
 });
+
+test('reloading after Tell filed FERN-7 and on keeps the six demo issues', () => {
+  const plan = planDemo({ existingKeys: ['FERN-1', 'FERN-2', 'FERN-3', 'FERN-4', 'FERN-5', 'FERN-6', 'FERN-7', 'FERN-11'] });
+  assert.equal(plan.error, undefined);
+  assert.deepEqual(plan.create, []);
+  assert.equal(plan.kept.length, 6);
+});

@@ -24,7 +24,8 @@ test('partial demo names the missing keys', () => {
 
 test('ready: open FERN-1 with its breaking count', () => {
   const { steps, next } = setupSteps({ connection: { ok: true, breaking: 5 }, demo: { exists: true, keys: all } });
-  assert.equal(next, 2);
+  assert.equal(next, -1);
+  assert.equal(steps[2].status, 'done');
   assert.equal(steps[2].href, '/browse/FERN-1');
   assert.match(steps[2].body, /5 breaking contract changes/);
 });
