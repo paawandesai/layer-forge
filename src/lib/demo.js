@@ -59,7 +59,9 @@ export function pickIssueType(types = []) {
 // other issues cannot be used.
 export function planDemo({ existingKeys = [], nextNumber } = {}) {
   const keys = demoKeys();
-  const existing = [...existingKeys].sort((a, b) => num(a) - num(b));
+  const sorted = [...existingKeys].sort((a, b) => num(a) - num(b));
+  // Issues after FERN-6 (such as the hand-offs Tell files) are fine once all six exist.
+  const existing = keys.every((k) => sorted.includes(k)) ? keys.slice() : sorted;
   if (existing.some((k, i) => k !== keys[i])) {
     return {
       error: `Project ${DEMO_PROJECT.key} already has other issues (${existing.slice(0, 3).join(', ')}), so new issues would not get the keys FERN-1 to FERN-6 that the demo pull requests use. Load the demo on a site without a ${DEMO_PROJECT.key} project, or rename that project's key.`,

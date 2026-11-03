@@ -356,8 +356,23 @@ resolver.define('getOverview', async () => {
         all.push(c);
       }
     }
-    const entries = blastRadius(all);
-    const keys = [...new Set(entries.map((e) => e.issue).filter(Boolean))];
+    // Only link issues that exist on this site, and count each one's full
+    // blast radius (the per-team queries above see only mapped teams).
+    const candidates = [...new Set(blastRadius(all).map((e) => e.issue).filter(Boolean))];
+    const exists = await Promise.all(
+      candidates.map((k) => jira(route`/rest/api/3/issue/${k}?fields=summary`, null, { allow404: true }).then(Boolean, () => false)),
+    );
+    const keys = candidates.filter((_, i) => exists[i]);
+    for (const k of keys) {
+      for (const c of (await client().changesForIssue(k)).changes || []) {
+        const id = `${c.id}|${c.route?.consumer}`;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        all.push(c);
+      }
+    }
+    const known = new Set(keys);
+    const entries = blastRadius(all).map((e) => (e.issue && !known.has(e.issue) ? { ...e, issue: '' } : e));
     const told = Object.fromEntries(await Promise.all(keys.map(async (k) => [k, (await storage.get(`told:${k}`)) || {}])));
     return { ...riskOverview(entries, told), teams, demo: isDemoData(entries) };
   } catch (err) {

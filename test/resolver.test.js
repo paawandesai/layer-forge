@@ -197,6 +197,9 @@ test('Teamwork Graph connection stores the id, syncs services, and forgets on de
 });
 
 test('getOverview summarizes breaking changes across teams', async () => {
+  const missing = await call('getOverview', { moduleKey: 'app:layer-risk-gadget' });
+  assert.equal(missing.rows[0].issue, '', 'issues that do not exist on this site are not linked');
+  jiraRoutes['GET /rest/api/3/issue/FERN-1'] = () => [200, { key: 'FERN-1' }];
   const out = await call('getOverview', { moduleKey: 'app:layer-risk-gadget' });
   assert.equal(out.breaking, 1);
   assert.equal(out.demo, true);

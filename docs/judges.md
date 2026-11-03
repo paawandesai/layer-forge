@@ -26,7 +26,7 @@ This takes about 5 minutes and needs no accounts or tokens. The app comes connec
 ## 4. Dashboard and automation (optional)
 
 - **Dashboard:** open **Dashboards**, create one, press **Add gadget**, and add **Contract risk**. It lists breaking changes in flight across the Fernway teams and which teams have not been told.
-- **Automation:** in **FERN**, open **Project settings**, then **Automation**, and create a rule. Use the trigger "Work item transitioned" to In Progress and the action **Check Layer blast radius** (issue key `{{issue.key}}`). Move FERN-4 to In Progress: Layer comments with the blast radius. New actions can take up to 20 minutes to appear in the rule builder after install.
+- **Automation:** in **FERN**, open **Project settings**, then **Automation**, and create a rule. Use the trigger "Work item transitioned" to In Progress and the action **Check Layer blast radius** (issue key `{{issue.key}}`). The first time, Jira asks you to **Connect** Atlassian Automation to Layer for Jira; press Connect. Move FERN-4 to In Progress: Layer comments with the blast radius. New actions can take up to 20 minutes to appear in the rule builder after install.
 
 ## 5. Ask Rovo (sites with Rovo)
 
