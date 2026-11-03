@@ -5,7 +5,7 @@ This takes about 5 minutes and needs no accounts or tokens. The app comes connec
 ## 1. Install
 
 1. Open the installation link from the submission.
-2. Choose your Jira Cloud site and press **Install**. Accept the permissions: read and write Jira issues, store app settings, and call layer-api.fly.dev.
+2. Choose your Jira Cloud site and press **Install**. Accept the permissions: read and write Jira issues, create the demo project, store app settings, and call layer-api.fly.dev. You need to be a Jira admin on the site.
 
 ## 2. Load the demo (Jira admin)
 
