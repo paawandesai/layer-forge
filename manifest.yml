@@ -229,6 +229,7 @@ permissions:
     - write:jira-work
     - storage:app
     - manage:jira-project
+    - manage:jira-configuration
     - read:object:jira
     - write:object:jira
     - delete:object:jira
