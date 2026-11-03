@@ -22,7 +22,7 @@ mock.module('@forge/api', {
       assert.match(url, /^https:\/\/layer\.test\/v1\//);
       return res(layerStatus, layerBody);
     },
-    asUser: () => ({
+    asApp: () => ({
       requestJira: async (path, opts = {}) => {
         const method = opts.method || 'GET';
         jiraCalls.push({ method, path, body: opts.body ? JSON.parse(opts.body) : undefined });

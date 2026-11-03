@@ -1,5 +1,5 @@
 import ResolverModule from '@forge/resolver';
-import { asUser, fetch, route } from '@forge/api';
+import { asApp, fetch, route } from '@forge/api';
 import { kvs as storage } from '@forge/kvs';
 import { createClient, layerConfig, LayerError } from './lib/layer.js';
 import { blastRadius, summarize, consumersText, changesText, groupIncoming } from './lib/format.js';
@@ -75,10 +75,9 @@ resolver.define('saveSettings', async (req) => {
   return { saved: true, teams: Object.keys(parseTeamProjects(teamProjects)).length };
 });
 
-// asUser() throws NEEDS_AUTHENTICATION_ERR until the person grants the app
-// access on this site. Forge shows its "Allow access" prompt only when that
-// error leaves the resolver, so every handler rethrows it instead of
-// reporting it as a Jira permission problem.
+// Jira calls run as the app, so a fresh install works with no per-user
+// "Allow access" step (some sites loop on that prompt). The guard below stays
+// so a consent error is never reported as a Jira permission problem.
 export function needsConsent(err) {
   return err?.name === 'NEEDS_AUTHENTICATION_ERR';
 }
@@ -89,7 +88,7 @@ const orNull = (err) => {
 };
 
 async function jira(path, body, { method = body ? 'POST' : 'GET', allow404 = false } = {}) {
-  const res = await asUser().requestJira(path, {
+  const res = await asApp().requestJira(path, {
     method,
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     ...(body ? { body: JSON.stringify(body) } : {}),
@@ -216,15 +215,14 @@ const PROJECT_TEMPLATES = [
   { projectTypeKey: 'business', projectTemplateKey: 'com.atlassian.jira-core-project-templates:jira-core-simplified-task-tracking' },
 ];
 
-async function createDemoProject() {
-  const me = await jira(route`/rest/api/3/myself`);
+async function createDemoProject(accountId) {
   let last;
   for (const t of PROJECT_TEMPLATES) {
     try {
       return await jira(route`/rest/api/3/project`, {
         key: DEMO_PROJECT.key,
         name: DEMO_PROJECT.name,
-        leadAccountId: me.accountId,
+        leadAccountId: accountId,
         assigneeType: 'UNASSIGNED',
         ...t,
       });
@@ -243,7 +241,7 @@ resolver.define('loadDemo', async (req) => {
   if (!req.context?.moduleKey?.endsWith(ADMIN_MODULE)) return { error: { message: 'The demo loads from the admin page.' } };
   try {
     let project = await jira(route`/rest/api/3/project/${DEMO_PROJECT.key}`, null, { allow404: true });
-    if (!project) project = await createDemoProject();
+    if (!project) project = await createDemoProject(req.context?.accountId);
     const found = await jira(route`/rest/api/3/search/jql`, {
       jql: `project = ${DEMO_PROJECT.key} ORDER BY key ASC`,
       fields: ['summary'],
